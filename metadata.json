@@ -1,0 +1,6 @@
+{
+  "name": "عالسريع — Ala El Saree",
+  "description": "تطبيق الغسيل والتنظيف الجاف الأول بمصر — حجز استلام وتوصيل الملابس من وإلى باب بيتك في الزقازيق، المنصورة، العاشر من رمضان والقاهرة.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

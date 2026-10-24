@@ -1,0 +1,20 @@
+# Dependencies & builds
+node_modules/
+build/
+dist/
+coverage/
+
+# OS
+.DS_Store
+*.log
+
+# Environment (local only — never commit real .env)
+.env*
+!.env.example
+
+# AI Studio temporary files (do not commit)
+.aistudio/
+public/assets/aistudio/
+
+# SQLite database (migrating to PostgreSQL — do not commit DB file)
+data/*.sqlite
