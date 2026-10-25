@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { MobileShell } from './components/layout/MobileShell';
+import { CorporateLandingPage } from './landing/CorporateLandingPage';
 
 
 // Customer Screens
@@ -91,13 +92,61 @@ const MainNavigator: React.FC = () => {
 
 
 export default function App() {
+  const [currentView, setCurrentView] = useState<'landing' | 'app' | 'merchant' | 'operations'>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const viewParam = params.get('view');
+      if (viewParam === 'app') return 'app';
+      if (viewParam === 'merchant') return 'merchant';
+      if (viewParam === 'operations') return 'operations';
+      if (viewParam === 'landing') return 'landing';
+      return 'landing';
+    } catch {
+      return 'landing';
+    }
+  });
+
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const params = new URLSearchParams(window.location.search);
+      const view = params.get('view');
+      if (view === 'app') setCurrentView('app');
+      else if (view === 'merchant') setCurrentView('merchant');
+      else if (view === 'operations') setCurrentView('operations');
+      else if (view === 'landing') setCurrentView('landing');
+    };
+    window.addEventListener('popstate', handleUrlChange);
+    return () => window.removeEventListener('popstate', handleUrlChange);
+  }, []);
+
+  const switchToApp = () => setCurrentView('app');
+  const switchToMerchant = () => setCurrentView('merchant');
+  const switchToOperations = () => setCurrentView('operations');
+  const switchToLanding = () => setCurrentView('landing');
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
-      <AppProvider>
-        <MobileShell onBackToLanding={() => {}}>
-          <MainNavigator />
-        </MobileShell>
-      </AppProvider>
+      <div className="flex-1 flex flex-col">
+        {currentView === 'landing' ? (
+          <CorporateLandingPage onOpenCustomerApp={switchToApp} />
+        ) : currentView === 'app' ? (
+          <AppProvider>
+            <MobileShell onBackToLanding={switchToLanding}>
+              <MainNavigator />
+            </MobileShell>
+          </AppProvider>
+        ) : currentView === 'merchant' ? (
+          <div className="flex-1 items-center justify-center bg-slate-100">
+            <p className="text-[#183247] text-lg">بوابة المغسلة - Merchant Portal</p>
+            <p className="text-xs text-[#718596] mt-2">تشغيل منفصل على المنفذ 5000</p>
+          </div>
+        ) : (
+          <div className="flex-1 items-center justify-center bg-slate-100">
+            <p className="text-[#183247] text-lg">العمليات المركزية - Operations</p>
+            <p className="text-xs text-[#718596] mt-2">تشغيل منفصل على المنفذ 3000</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
