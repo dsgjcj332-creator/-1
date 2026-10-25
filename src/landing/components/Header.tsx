@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Globe, Sparkles, Store, ShoppingBag } from 'lucide-react';
+import { Menu, X, Globe, Sparkles, Store, ShoppingBag, User } from 'lucide-react';
 import { LandingTranslation, Language } from '../data/translations';
 
 interface HeaderProps {
   t: LandingTranslation;
   language: Language;
   onToggleLanguage: () => void;
-  onOpenCustomerApp: () => void;
+  onOpenAppDownload: () => void;
+  onOpenRegister: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   t,
   language,
   onToggleLanguage,
-  onOpenCustomerApp
+  onOpenAppDownload,
+  onOpenRegister
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -124,9 +126,18 @@ export const Header: React.FC<HeaderProps> = ({
               <span>{t.navJoinPartner}</span>
             </button>
 
+            {/* Primary Action: Register / Login */}
+            <button
+              onClick={onOpenRegister}
+              className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-[#E5EEF4] hover:bg-slate-50 rounded-xl transition shadow-sm cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+            >
+              <User className="w-3.5 h-3.5 text-[#08BDF4]" />
+              <span>{t.navRegister}</span>
+            </button>
+
             {/* Primary Action: Customer App Experience */}
             <button
-              onClick={onOpenCustomerApp}
+              onClick={onOpenAppDownload}
               className="px-5 py-2.5 text-xs font-bold text-white bg-[#08BDF4] hover:bg-[#079FD0] rounded-xl transition shadow-sm hover:shadow active:scale-98 cursor-pointer whitespace-nowrap flex items-center gap-1.5"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
@@ -203,7 +214,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  onOpenCustomerApp();
+                  onOpenAppDownload();
                 }}
                 className="w-full py-3 px-4 text-xs font-bold text-white bg-[#08BDF4] rounded-xl text-center flex items-center justify-center gap-2 shadow-sm"
               >

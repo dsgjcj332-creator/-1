@@ -5,13 +5,13 @@ import { LandingTranslation, Language } from '../data/translations';
 interface CustomerSectionProps {
   t: LandingTranslation;
   language: Language;
-  onOpenCustomerApp: () => void;
+  onOpenAppDownload: () => void;
 }
 
 export const CustomerSection: React.FC<CustomerSectionProps> = ({
   t,
   language,
-  onOpenCustomerApp
+  onOpenAppDownload
 }) => {
   const isRtl = language === 'ar';
   const ArrowIcon = isRtl ? ArrowLeft : ArrowRight;
@@ -107,7 +107,7 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({
           </div>
 
           <button
-            onClick={onOpenCustomerApp}
+            onClick={onOpenAppDownload}
             className="px-8 py-4 rounded-2xl bg-[#08BDF4] hover:bg-[#079FD0] text-white font-bold text-sm flex items-center gap-2.5 shadow-lg shadow-cyan-500/25 shrink-0 transition active:scale-98 cursor-pointer"
           >
             <span>{t.customerCtaButton}</span>

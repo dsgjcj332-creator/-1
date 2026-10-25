@@ -14,11 +14,13 @@ import { Footer } from './components/Footer';
 import { LegalModal } from './components/LegalModals';
 
 interface CorporateLandingPageProps {
-  onOpenCustomerApp: () => void;
+  onOpenAppDownload: () => void;
+  onOpenRegister: () => void;
 }
 
 export const CorporateLandingPage: React.FC<CorporateLandingPageProps> = ({
-  onOpenCustomerApp
+  onOpenAppDownload,
+  onOpenRegister
 }) => {
   const [language, setLanguage] = useState<Language>(() => {
     try {
@@ -63,7 +65,8 @@ export const CorporateLandingPage: React.FC<CorporateLandingPageProps> = ({
         t={t}
         language={language}
         onToggleLanguage={handleToggleLanguage}
-        onOpenCustomerApp={onOpenCustomerApp}
+        onOpenAppDownload={onOpenAppDownload}
+        onOpenRegister={onOpenRegister}
       />
 
       {/* Main Page Landmark */}
@@ -72,7 +75,7 @@ export const CorporateLandingPage: React.FC<CorporateLandingPageProps> = ({
         <HeroSection
           t={t}
           language={language}
-          onOpenCustomerApp={onOpenCustomerApp}
+          onOpenAppDownload={onOpenAppDownload}
           onScrollToMerchant={handleScrollToMerchantForm}
         />
 
@@ -80,7 +83,7 @@ export const CorporateLandingPage: React.FC<CorporateLandingPageProps> = ({
         <CustomerSection
           t={t}
           language={language}
-          onOpenCustomerApp={onOpenCustomerApp}
+          onOpenAppDownload={onOpenAppDownload}
         />
 
         {/* 4. Complete Services Catalog */}
@@ -132,7 +135,7 @@ export const CorporateLandingPage: React.FC<CorporateLandingPageProps> = ({
         t={t}
         language={language}
         onToggleLanguage={handleToggleLanguage}
-        onOpenCustomerApp={onOpenCustomerApp}
+        onOpenAppDownload={onOpenAppDownload}
         onOpenLegal={type => setLegalModalType(type)}
       />
 

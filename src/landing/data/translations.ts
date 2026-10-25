@@ -14,6 +14,7 @@ export interface LandingTranslation {
   navForDelivery: string;
   navFaq: string;
   navCustomerCta: string;
+  navRegister: string;
   navJoinPartner: string;
   toggleLang: string;
 
@@ -220,6 +221,7 @@ export const TRANSLATIONS: Record<Language, LandingTranslation> = {
     navForDelivery: 'شركاء التوصيل',
     navFaq: 'الأسئلة الشائعة',
     navCustomerCta: 'اطلب خدمتك',
+    navRegister: 'تسجيل الدخول / إنشاء حساب',
     navJoinPartner: 'انضم كشريك',
     toggleLang: 'English',
 
@@ -424,6 +426,7 @@ export const TRANSLATIONS: Record<Language, LandingTranslation> = {
     navForDelivery: 'Delivery Partners',
     navFaq: 'FAQ',
     navCustomerCta: 'Order Service',
+    navRegister: 'Login / Create Account',
     navJoinPartner: 'Join as Partner',
     toggleLang: 'عربي',
 

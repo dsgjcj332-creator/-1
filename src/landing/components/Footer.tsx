@@ -6,7 +6,7 @@ interface FooterProps {
   t: LandingTranslation;
   language: Language;
   onToggleLanguage: () => void;
-  onOpenCustomerApp: () => void;
+  onOpenAppDownload: () => void;
   onOpenLegal: (type: 'privacy' | 'terms') => void;
 }
 
@@ -14,7 +14,7 @@ export const Footer: React.FC<FooterProps> = ({
   t,
   language,
   onToggleLanguage,
-  onOpenCustomerApp,
+  onOpenAppDownload,
   onOpenLegal
 }) => {
   const currentYear = new Date().getFullYear();
@@ -151,7 +151,7 @@ export const Footer: React.FC<FooterProps> = ({
                 : 'Experience our customer mobile app for garment care booking.'}
             </p>
             <button
-              onClick={onOpenCustomerApp}
+              onClick={onOpenAppDownload}
               className="px-4 py-2.5 rounded-xl bg-[#08BDF4] hover:bg-[#079FD0] text-white text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer"
             >
               <ShoppingBag className="w-3.5 h-3.5" />

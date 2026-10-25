@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { MobileShell } from './components/layout/MobileShell';
 import { CorporateLandingPage } from './landing/CorporateLandingPage';
+import { AppDownloadPage } from './landing/components/AppDownloadPage';
+import { RegisterPage } from './landing/RegisterPage';
 
 
 // Customer Screens
@@ -92,13 +94,15 @@ const MainNavigator: React.FC = () => {
 
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'app' | 'merchant' | 'operations'>(() => {
+  const [currentView, setCurrentView] = useState<'landing' | 'app' | 'download' | 'merchant' | 'operations' | 'register'>(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const viewParam = params.get('view');
       if (viewParam === 'app') return 'app';
+      if (viewParam === 'download') return 'download';
       if (viewParam === 'merchant') return 'merchant';
       if (viewParam === 'operations') return 'operations';
+      if (viewParam === 'register') return 'register';
       if (viewParam === 'landing') return 'landing';
       return 'landing';
     } catch {
@@ -111,14 +115,18 @@ export default function App() {
       const params = new URLSearchParams(window.location.search);
       const view = params.get('view');
       if (view === 'app') setCurrentView('app');
+      else if (view === 'download') setCurrentView('download');
       else if (view === 'merchant') setCurrentView('merchant');
       else if (view === 'operations') setCurrentView('operations');
+      else if (view === 'register') setCurrentView('register');
       else if (view === 'landing') setCurrentView('landing');
     };
     window.addEventListener('popstate', handleUrlChange);
     return () => window.removeEventListener('popstate', handleUrlChange);
   }, []);
 
+  const switchToRegister = () => setCurrentView('register');
+  const switchToDownload = () => setCurrentView('download');
   const switchToApp = () => setCurrentView('app');
   const switchToMerchant = () => setCurrentView('merchant');
   const switchToOperations = () => setCurrentView('operations');
@@ -127,8 +135,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       <div className="flex-1 flex flex-col">
-        {currentView === 'landing' ? (
-          <CorporateLandingPage onOpenCustomerApp={switchToApp} />
+        {currentView === 'register' ? (
+          <RegisterPage onBackToLanding={switchToLanding} />
+        ) : currentView === 'landing' ? (
+          <CorporateLandingPage onOpenAppDownload={switchToDownload} onOpenRegister={switchToRegister} />
+        ) : currentView === 'download' ? (
+          <AppDownloadPage onBackToLanding={switchToLanding} />
         ) : currentView === 'app' ? (
           <AppProvider>
             <MobileShell onBackToLanding={switchToLanding}>

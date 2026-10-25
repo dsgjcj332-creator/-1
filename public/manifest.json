@@ -1,0 +1,36 @@
+{
+  "name": "عالسريع - غسيل وتنظيف جاف",
+  "short_name": "عالسريع",
+  "description": "منصة الغسيل والتنظيف الجاف الأولى بمصر. استلم وتسلم ملابسك لباب بيتك مع مغاسل معتمدة.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#08BDF4",
+  "orientation": "portrait",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["lifestyle", "utilities"],
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/assets/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "واجهة تطبيق عالسريع"
+    }
+  ]
+}

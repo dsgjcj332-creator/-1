@@ -5,14 +5,14 @@ import { LandingTranslation, Language } from '../data/translations';
 interface HeroSectionProps {
   t: LandingTranslation;
   language: Language;
-  onOpenCustomerApp: () => void;
+  onOpenAppDownload: () => void;
   onScrollToMerchant: () => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
   t,
   language,
-  onOpenCustomerApp,
+  onOpenAppDownload,
   onScrollToMerchant
 }) => {
   const isRtl = language === 'ar';
@@ -50,7 +50,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 w-full sm:w-auto mb-10">
               <button
-                onClick={onOpenCustomerApp}
+                onClick={onOpenAppDownload}
                 className="px-7 py-3.5 rounded-2xl bg-[#08BDF4] hover:bg-[#079FD0] text-white font-bold text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-[#08BDF4]/20 hover:shadow-xl transition active:scale-98 cursor-pointer"
               >
                 <span>{t.heroPrimaryCta}</span>
