@@ -17,6 +17,17 @@ import { validateEgyptianPhone, normalizeEgyptianPhone } from '../../utils/i18n'
 // 1. Auth Welcome Landing
 export const AuthWelcomeScreen: React.FC = () => {
   const { language, setLanguage, t, navigateTo, loginAsGuest } = useApp();
+  const [logoClickCount, setLogoClickCount] = useState(0);
+  const [isAdminMode, setIsAdminMode] = useState(false);
+
+  const handleLogoClick = () => {
+    const next = logoClickCount + 1;
+    setLogoClickCount(next);
+    if (next >= 5) {
+      setIsAdminMode(true);
+      navigateTo('auth_phone');
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col justify-between p-6 bg-white select-none">
@@ -31,11 +42,26 @@ export const AuthWelcomeScreen: React.FC = () => {
       </div>
 
       <div className="flex flex-col items-center text-center my-auto">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#08BDF4] to-[#079FD0] p-1 shadow-lg shadow-[#08BDF4]/20 flex items-center justify-center mb-5">
-          <div className="w-full h-full bg-white rounded-xl flex flex-col items-center justify-center">
-            <span className="text-2xl font-black text-[#08BDF4]">عالسريع</span>
+        <div
+          onClick={handleLogoClick}
+          className="cursor-pointer transition-transform active:scale-95"
+          title={isAdminMode ? 'تم تفعيل وضع الأدمن' : `نقرات على الشعار: ${logoClickCount}/5`}
+        >
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#08BDF4] to-[#079FD0] p-1 shadow-lg shadow-[#08BDF4]/20 flex items-center justify-center mb-5">
+            <div className="w-full h-full bg-white rounded-xl flex flex-col items-center justify-center">
+              <span className={`text-2xl font-black text-[#08BDF4] ${isAdminMode ? 'animate-pulse' : ''}`}>
+                عالسريع
+              </span>
+            </div>
           </div>
         </div>
+        {isAdminMode && (
+          <div className="mb-4">
+            <span className="text-[10px] font-bold text-[#18A875] bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              🔐 وضع الأدمن مفعل
+            </span>
+          </div>
+        )}
 
         <h1 className="text-2xl font-black text-[#183247] mb-2 tracking-tight">
           {t.authWelcomeTitle}

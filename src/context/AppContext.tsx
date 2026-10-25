@@ -147,7 +147,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Navigation
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('splash');
-  const [mainTab, setMainTab] = useState<MainTab>('home');
+  const [mainTab, setMainTab] = useState<MainTab>('account');
   const [navigationHistory, setNavigationHistory] = useState<ScreenType[]>(['splash']);
 
   const navigateTo = (screen: ScreenType) => {
