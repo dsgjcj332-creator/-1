@@ -5,10 +5,13 @@
 
 const BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '/api/v1';
 
-// Detect static hosting (e.g. Vercel without a backend service) to prevent 404 console errors
+// Detect static hosting (e.g. Vercel, GitHub Pages, or local development without backend service)
 const isStaticHost = typeof window !== 'undefined' && 
-  (window.location.hostname.includes('vercel.app') || window.location.hostname.includes('github.io')) &&
-  !(import.meta as any).env?.VITE_API_BASE_URL;
+  (!((import.meta as any).env?.VITE_API_BASE_URL) ||
+   window.location.hostname.includes('vercel.app') || 
+   window.location.hostname.includes('github.io') ||
+   window.location.hostname === 'localhost' ||
+   window.location.hostname === '127.0.0.1');
 
 function getToken(): string | null {
   try {

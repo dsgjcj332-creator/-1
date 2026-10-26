@@ -14,6 +14,7 @@ import { OnboardingScreen } from './components/screens/OnboardingScreen';
 import {
   AuthWelcomeScreen,
   AuthPhoneScreen,
+  AuthPinScreen,
   AuthOtpScreen,
   AuthProfileScreen
 } from './components/screens/AuthScreens';
@@ -47,6 +48,8 @@ const MainNavigator: React.FC = () => {
       return <AuthWelcomeScreen />;
     case 'auth_phone':
       return <AuthPhoneScreen />;
+    case 'auth_pin':
+      return <AuthPinScreen />;
     case 'auth_otp':
       return <AuthOtpScreen />;
     case 'auth_profile':

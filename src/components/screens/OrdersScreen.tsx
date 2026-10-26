@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Order, OrderStatus } from '../../types';
-import { GARMENTS, LAUNDRY_PARTNERS } from '../../data/mockData';
+import { GARMENTS } from '../../data/mockData';
 
 export const OrdersScreen: React.FC = () => {
   const {
@@ -116,7 +116,6 @@ export const OrdersScreen: React.FC = () => {
         ) : (
           filteredOrders.map(order => {
             const partner = partners.find(p => p.id === order.partnerId || p.id === (order as any).merchantId) ||
-              LAUNDRY_PARTNERS.find(p => p.id === order.partnerId) ||
               {
                 id: order.partnerId,
                 nameAr: (order as any).merchantName || (order as any).merchant_name || 'مغسلة معتمدة',

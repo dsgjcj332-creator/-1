@@ -28,10 +28,22 @@ export interface User {
   name: string;
   phone: string;
   email?: string;
+  pin?: string;
   preferredLanguage: Language;
   defaultAddressId?: string;
   isGuest: boolean;
 }
+
+export interface CustomerAccount {
+  id: string;
+  name: string;
+  phone: string;
+  pin: string;
+  email?: string;
+  preferredLanguage: Language;
+  createdAt: string;
+}
+
 
 export interface GarmentCategory {
   id: string;
@@ -197,6 +209,7 @@ export type ScreenType =
   | 'onboarding'
   | 'auth_welcome'
   | 'auth_phone'
+  | 'auth_pin'
   | 'auth_otp'
   | 'auth_profile'
   | 'main'

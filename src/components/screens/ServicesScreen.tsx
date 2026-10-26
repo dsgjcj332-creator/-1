@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Sparkles, Filter, ChevronRight, ChevronLeft, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { GARMENT_CATEGORIES, GARMENTS, LAUNDRY_PARTNERS } from '../../data/mockData';
+import { GARMENT_CATEGORIES, GARMENTS } from '../../data/mockData';
 import { ServiceType } from '../../types';
 
 export const ServicesScreen: React.FC = () => {

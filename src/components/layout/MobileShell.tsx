@@ -99,6 +99,8 @@ export const MobileShell: React.FC<MobileShellProps> = ({ children, onBackToLand
         return language === 'ar' ? 'تقييم الخدمة' : 'Rate Order';
       case 'auth_phone':
         return language === 'ar' ? 'رقم الهاتف' : 'Phone Number';
+      case 'auth_pin':
+        return language === 'ar' ? 'تسجيل الدخول' : 'Sign In';
       case 'auth_otp':
         return language === 'ar' ? 'تأكيد الرمز' : 'Verify OTP';
       case 'auth_profile':

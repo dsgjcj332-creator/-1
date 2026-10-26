@@ -399,3 +399,13 @@ export function normalizeEgyptianPhone(phone: string): string {
   }
   return phone;
 }
+
+export function extractEgyptianPhoneDigits(phone: string): string {
+  const clean = phone.replace(/[\s\-\+]/g, '');
+  const match = clean.match(/^(?:20|0)?(1[0125][0-9]{8})$/);
+  if (match) {
+    return '0' + match[1];
+  }
+  return clean;
+}
+

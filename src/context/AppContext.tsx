@@ -15,7 +15,8 @@ import {
   ServiceType,
   OrderItemCustomization,
   OrderStatus,
-  GarmentPhoto
+  GarmentPhoto,
+  CustomerAccount
 } from '../types';
 import {
   DEFAULT_ADDRESSES,
@@ -26,7 +27,7 @@ import {
   GARMENTS,
   CITIES
 } from '../data/mockData';
-import { translations } from '../utils/i18n';
+import { translations, normalizeEgyptianPhone, extractEgyptianPhoneDigits } from '../utils/i18n';
 import { api } from '../api/client';
 
 interface AppContextType {
@@ -43,6 +44,9 @@ interface AppContextType {
   // Auth
   user: User | null;
   loginWithPhone: (phone: string, name?: string) => void;
+  loginWithPin: (phone: string, pin: string) => { success: boolean; error?: string };
+  registerCustomer: (name: string, phone: string, pin: string, email?: string) => void;
+  checkCustomerAccount: (phone: string) => { exists: boolean; name?: string };
   loginAsGuest: () => void;
   logout: () => void;
   updateUserProfile: (name: string, email?: string) => void;
@@ -177,36 +181,188 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // User State
+  // User State — no fake users
   const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('alasaree_user');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return null;
+    try {
+      const saved = localStorage.getItem('alasaree_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (
+          parsed &&
+          parsed.name !== 'أحمد محمود العوضي' &&
+          parsed.id !== 'user-ahmed' &&
+          !String(parsed.name || '').includes('العوضي')
+        ) {
+          return parsed;
+        }
+        localStorage.removeItem('alasaree_user');
       }
+    } catch {
+      return null;
     }
-    // Default logged in user for immediate seamless experience
-    return {
-      id: 'user-ahmed',
-      name: 'أحمد محمود العوضي',
-      phone: '+20 101 234 5678',
-      email: 'ahmed.awady@example.com',
-      preferredLanguage: 'ar',
-      defaultAddressId: 'addr-1',
-      isGuest: false
-    };
+    return null;
   });
 
+  const checkCustomerAccount = (phoneInput: string): { exists: boolean; name?: string } => {
+    try {
+      const digits = extractEgyptianPhoneDigits(phoneInput);
+      const raw = localStorage.getItem('alasaree_registered_users');
+      if (raw) {
+        const accounts: CustomerAccount[] = JSON.parse(raw);
+        const match = accounts.find(
+          a => extractEgyptianPhoneDigits(a.phone) === digits
+        );
+        if (match) {
+          return { exists: true, name: match.name };
+        }
+      }
+    } catch {}
+    return { exists: false };
+  };
+
+  const loginWithPin = (
+    phoneInput: string,
+    pinInput: string
+  ): { success: boolean; error?: string } => {
+    try {
+      const digits = extractEgyptianPhoneDigits(phoneInput);
+      const raw = localStorage.getItem('alasaree_registered_users');
+      const accounts: CustomerAccount[] = raw ? JSON.parse(raw) : [];
+      const match = accounts.find(
+        a => extractEgyptianPhoneDigits(a.phone) === digits
+      );
+
+      if (!match) {
+        return {
+          success: false,
+          error:
+            language === 'ar'
+              ? 'هذا الرقم غير مسجل كعميل، يرجى إنشاء حساب جديد'
+              : 'Account not found. Please sign up.'
+        };
+      }
+
+      if (match.pin !== pinInput.trim()) {
+        return {
+          success: false,
+          error:
+            language === 'ar'
+              ? 'الرقم السري غير صحيح، يرجى المحاولة مرة أخرى'
+              : 'Incorrect PIN. Please try again.'
+        };
+      }
+
+      const loggedUser: User = {
+        id: match.id,
+        name: match.name,
+        phone: match.phone,
+        email: match.email,
+        pin: match.pin,
+        preferredLanguage: match.preferredLanguage || language,
+        isGuest: false
+      };
+
+      setUser(loggedUser);
+      localStorage.setItem('alasaree_user', JSON.stringify(loggedUser));
+      showToast(
+        language === 'ar'
+          ? `أهلاً بك مجدداً يا ${match.name.split(' ')[0]}!`
+          : `Welcome back, ${match.name.split(' ')[0]}!`
+      );
+      navigateTo('main');
+      return { success: true };
+    } catch {
+      return {
+        success: false,
+        error: language === 'ar' ? 'حدث خطأ غير متوقع' : 'Unexpected error'
+      };
+    }
+  };
+
+  const registerCustomer = (
+    name: string,
+    phoneInput: string,
+    pin: string,
+    email?: string
+  ) => {
+    const normalizedPhone = normalizeEgyptianPhone(phoneInput);
+    const digits = extractEgyptianPhoneDigits(phoneInput);
+    const newAccount: CustomerAccount = {
+      id: `user-${Date.now()}`,
+      name: name.trim(),
+      phone: normalizedPhone,
+      pin: pin.trim(),
+      email: email?.trim() || undefined,
+      preferredLanguage: language,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      const raw = localStorage.getItem('alasaree_registered_users');
+      let accounts: CustomerAccount[] = raw ? JSON.parse(raw) : [];
+      accounts = accounts.filter(
+        a => extractEgyptianPhoneDigits(a.phone) !== digits
+      );
+      accounts.push(newAccount);
+      localStorage.setItem('alasaree_registered_users', JSON.stringify(accounts));
+    } catch {}
+
+    const newUser: User = {
+      id: newAccount.id,
+      name: newAccount.name,
+      phone: newAccount.phone,
+      email: newAccount.email,
+      pin: newAccount.pin,
+      preferredLanguage: language,
+      isGuest: false
+    };
+
+    setUser(newUser);
+    localStorage.setItem('alasaree_user', JSON.stringify(newUser));
+    showToast(
+      language === 'ar'
+        ? 'تم إنشاء حسابك وتعيين الرقم السري بنجاح!'
+        : 'Account created and PIN set successfully!'
+    );
+    navigateTo('main');
+  };
+
   const loginWithPhone = (phone: string, name?: string) => {
+    const normalizedPhone = normalizeEgyptianPhone(phone);
+    const digits = extractEgyptianPhoneDigits(phone);
+    let matchedName = name;
+
+    try {
+      const raw = localStorage.getItem('alasaree_registered_users');
+      if (raw) {
+        const accounts: CustomerAccount[] = JSON.parse(raw);
+        const match = accounts.find(
+          a => extractEgyptianPhoneDigits(a.phone) === digits
+        );
+        if (match) {
+          matchedName = match.name;
+          const userObj: User = {
+            id: match.id,
+            name: match.name,
+            phone: match.phone,
+            email: match.email,
+            pin: match.pin,
+            preferredLanguage: match.preferredLanguage || language,
+            isGuest: false
+          };
+          setUser(userObj);
+          localStorage.setItem('alasaree_user', JSON.stringify(userObj));
+          return;
+        }
+      }
+    } catch {}
+
     const newUser: User = {
       id: `user-${Date.now()}`,
-      name: name || (language === 'ar' ? 'عميل عالسريع' : 'Ala El Saree Customer'),
-      phone,
+      name: matchedName || (language === 'ar' ? 'عميل جديد' : 'New Customer'),
+      phone: normalizedPhone,
       preferredLanguage: language,
-      isGuest: false,
-      defaultAddressId: 'addr-1'
+      isGuest: false
     };
     setUser(newUser);
     localStorage.setItem('alasaree_user', JSON.stringify(newUser));
@@ -236,18 +392,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updated = { ...user, name, email };
     setUser(updated);
     localStorage.setItem('alasaree_user', JSON.stringify(updated));
+
+    // Also update registered accounts cache if present
+    try {
+      const raw = localStorage.getItem('alasaree_registered_users');
+      if (raw) {
+        const accounts: CustomerAccount[] = JSON.parse(raw);
+        const idx = accounts.findIndex(a => a.id === user.id || a.phone === user.phone);
+        if (idx >= 0) {
+          accounts[idx] = { ...accounts[idx], name, email };
+          localStorage.setItem('alasaree_registered_users', JSON.stringify(accounts));
+        }
+      }
+    } catch {}
+
     showToast(language === 'ar' ? 'تم تحديث بياناتك بنجاح' : 'Profile updated successfully');
   };
 
-  // Addresses
+  // Addresses — clean out fake addresses
   const [addresses, setAddresses] = useState<Address[]>(() => {
-    const saved = localStorage.getItem('alasaree_addresses');
-    return saved ? JSON.parse(saved) : DEFAULT_ADDRESSES;
+    try {
+      const saved = localStorage.getItem('alasaree_addresses');
+      if (saved) {
+        const parsed: Address[] = JSON.parse(saved);
+        const real = parsed.filter(
+          a =>
+            a.contactName !== 'أحمد محمود العوضي' &&
+            !String(a.contactName || '').includes('العوضي') &&
+            a.id !== 'addr-1' &&
+            a.id !== 'addr-2'
+        );
+        return real;
+      }
+    } catch {}
+    return [];
   });
 
-  const [selectedAddress, setSelectedAddress] = useState<Address>(
-    addresses.find(a => a.isDefault) || addresses[0]
-  );
+  const [selectedAddress, setSelectedAddress] = useState<Address>(() => {
+    const def = addresses.find(a => a.isDefault) || addresses[0];
+    if (def) return def;
+    return {
+      id: '',
+      title: 'العنوان',
+      city: 'الزقازيق',
+      neighborhood: 'حي الجامعة',
+      street: '',
+      building: '',
+      floor: '',
+      apartment: '',
+      contactName: '',
+      contactPhone: '',
+      isDefault: true
+    };
+  });
 
   const addAddress = (newAddr: Omit<Address, 'id'>) => {
     const created: Address = {
@@ -351,8 +548,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const [partners, setPartners] = useState<LaundryPartner[]>(() => {
-    const real = loadActivePartnersFromOps();
-    return real.length > 0 ? real : LAUNDRY_PARTNERS;
+    return loadActivePartnersFromOps();
   });
 
   // Listen to live merchant settings updates
@@ -370,8 +566,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [selectedPartner, setSelectedPartner] = useState<LaundryPartner>(() => {
     const real = loadActivePartnersFromOps();
-    const list = real.length > 0 ? real : LAUNDRY_PARTNERS;
-    return list[0];
+    if (real.length > 0) return real[0];
+    return {
+      id: '',
+      nameAr: 'مغسلة معتمدة',
+      nameEn: 'Certified Partner',
+      city: 'zagazig',
+      neighborhoodAr: 'الزقازيق',
+      neighborhoodEn: 'Zagazig',
+      rating: 5.0,
+      ratingCount: 0,
+      estimatedHours: 24,
+      minOrderAmount: 20,
+      deliveryFee: 20,
+      expressAvailable: true,
+      expressHours: 6,
+      badgeAr: 'شريك معتمد',
+      badgeEn: 'Verified Partner'
+    };
   });
 
   // React to admin approving new merchants
@@ -1138,7 +1350,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const reorder = (prevOrder: Order) => {
     setCartItems([...prevOrder.items]);
-    const partner = partners.find(p => p.id === prevOrder.partnerId) || partners[0] || LAUNDRY_PARTNERS[0];
+    const partner = partners.find(p => p.id === prevOrder.partnerId) || partners[0] || selectedPartner;
     setSelectedPartner(partner);
     setSelectedAddress(prevOrder.address);
     navigateTo('checkout');
@@ -1194,6 +1406,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         user,
         loginWithPhone,
+        loginWithPin,
+        registerCustomer,
+        checkCustomerAccount,
         loginAsGuest,
         logout,
         updateUserProfile,

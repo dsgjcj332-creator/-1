@@ -8,10 +8,10 @@ import {
   ArrowRight,
   ArrowLeft,
   ShieldCheck,
-  Zap
+  Zap,
+  Store
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { LAUNDRY_PARTNERS } from '../../data/mockData';
 import { LaundryPartner } from '../../types';
 
 export const PartnerSelectScreen: React.FC = () => {
@@ -27,8 +27,8 @@ export const PartnerSelectScreen: React.FC = () => {
     showToast
   } = useApp();
 
-  // Filter partners by selected city or show all
-  const partnersList = partners && partners.length > 0 ? partners : LAUNDRY_PARTNERS;
+  // Filter partners by selected city or show all real active partners
+  const partnersList = partners && partners.length > 0 ? partners : [];
   const cityPartners = partnersList.filter(
     p => p.city === selectedCity || partnersList.length <= 2
   );
@@ -118,7 +118,22 @@ export const PartnerSelectScreen: React.FC = () => {
       </div>
 
       <div className="flex flex-col gap-3">
-        {partnersToShow.map(partner => {
+        {partnersToShow.length === 0 ? (
+          <div className="p-8 text-center bg-white rounded-3xl border border-dashed border-[#E5EEF4] my-4 shadow-2xs">
+            <div className="w-14 h-14 rounded-2xl bg-[#EAF8FF] text-[#079FD0] mx-auto flex items-center justify-center mb-3">
+              <Store className="w-7 h-7" />
+            </div>
+            <h3 className="text-sm font-black text-[#183247] mb-1">
+              {language === 'ar' ? 'لا توجد مغاسل مفعلة حالياً في منطقتك' : 'No active laundry partners in this zone yet'}
+            </h3>
+            <p className="text-xs text-[#718596] max-w-xs mx-auto leading-relaxed">
+              {language === 'ar'
+                ? 'جاري مراجعة وتفعيل مغاسل جديدة قريباً من خلال لوحة العمليات والشركاء.'
+                : 'New verified laundry partners are being onboarded soon.'}
+            </p>
+          </div>
+        ) : (
+          partnersToShow.map(partner => {
           const isSelected = activePartnerId === partner.id;
           const live = getPartnerLiveSettings(partner);
 
@@ -232,18 +247,7 @@ export const PartnerSelectScreen: React.FC = () => {
               </div>
             </div>
           );
-        })}
-
-        {partnersToShow.length === 0 && (
-          <div className="p-8 text-center bg-white rounded-2xl border border-[#E5EEF4]">
-            <p className="text-sm font-bold text-[#183247] mb-1">
-              {language === 'ar' ? 'لا توجد مغاسل معتمدة في منطقتك حالياً' : 'No certified laundries available in your area'}
-            </p>
-            <p className="text-xs text-[#718596]">
-              {language === 'ar' ? 'سيتم إضافة مغاسل جديدة قريباً' : 'New partners will be added soon'}
-            </p>
-          </div>
-        )}
+        }))}
       </div>
 
       {/* Floating Bottom Action */}

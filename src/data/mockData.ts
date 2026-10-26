@@ -427,93 +427,7 @@ export const GARMENTS: GarmentItem[] = [
   }
 ];
 
-export const LAUNDRY_PARTNERS: LaundryPartner[] = [
-  {
-    id: 'partner-nile-royal',
-    nameAr: 'مغسلة النيل الملكية الفندقية',
-    nameEn: 'Nile Royal Hotel Cleaners',
-    city: 'zagazig',
-    neighborhoodAr: 'شارع الجامعة، الزقازيق',
-    neighborhoodEn: 'University St, Zagazig',
-    rating: 4.9,
-    ratingCount: 384,
-    estimatedHours: 24,
-    minOrderAmount: 20,
-    deliveryFee: 20,
-    expressAvailable: true,
-    expressHours: 6,
-    badgeAr: 'الأعلى تقييماً',
-    badgeEn: 'Top Rated'
-  },
-  {
-    id: 'partner-safa',
-    nameAr: 'مغسلة دار الصفا الحديثة',
-    nameEn: 'Dar Al-Safa Modern Laundry',
-    city: 'zagazig',
-    neighborhoodAr: 'منطقة القومية، الزقازيق',
-    neighborhoodEn: 'Al-Qawmeya, Zagazig',
-    rating: 4.8,
-    ratingCount: 245,
-    estimatedHours: 24,
-    minOrderAmount: 20,
-    deliveryFee: 15,
-    expressAvailable: true,
-    expressHours: 8,
-    badgeAr: 'الأسرع توصيلاً',
-    badgeEn: 'Fastest Delivery'
-  },
-  {
-    id: 'partner-mansoura-vip',
-    nameAr: 'دار كلين للغسيل والكي الفاخر',
-    nameEn: 'Dar Clean Luxury Laundry',
-    city: 'mansoura',
-    neighborhoodAr: 'المشاية السفلية، المنصورة',
-    neighborhoodEn: 'Lower Corniche, Mansoura',
-    rating: 4.9,
-    ratingCount: 520,
-    estimatedHours: 24,
-    minOrderAmount: 20,
-    deliveryFee: 25,
-    expressAvailable: true,
-    expressHours: 6,
-    badgeAr: 'شريك ذهبي',
-    badgeEn: 'Gold Partner'
-  },
-  {
-    id: 'partner-ramadan-clean',
-    nameAr: 'إكسبريس واش العاشر من رمضان',
-    nameEn: 'Express Wash 10th of Ramadan',
-    city: 'ramadan10',
-    neighborhoodAr: 'منطقة الأردنية سنتر، العاشر',
-    neighborhoodEn: 'Al-Urduniya Center, 10th Ramadan',
-    rating: 4.7,
-    ratingCount: 198,
-    estimatedHours: 24,
-    minOrderAmount: 60,
-    deliveryFee: 15,
-    expressAvailable: false,
-    expressHours: 24,
-    badgeAr: 'خدمة معتمدة',
-    badgeEn: 'Verified Partner'
-  },
-  {
-    id: 'partner-cairo-maadi',
-    nameAr: 'مغاسل المعادي إكسبريس',
-    nameEn: 'Maadi Express Cleaners',
-    city: 'cairo',
-    neighborhoodAr: 'شارع النصر، المعادي',
-    neighborhoodEn: 'Al-Nasr St, Maadi',
-    rating: 4.9,
-    ratingCount: 890,
-    estimatedHours: 24,
-    minOrderAmount: 100,
-    deliveryFee: 30,
-    expressAvailable: true,
-    expressHours: 5,
-    badgeAr: 'فندقي ممتاز',
-    badgeEn: 'Hotel Grade'
-  }
-];
+export const LAUNDRY_PARTNERS: LaundryPartner[] = [];
 
 export const TIME_SLOTS = [
   { id: 'slot-1', textAr: '09:00 ص - 12:00 م (صباحي)', textEn: '09:00 AM - 12:00 PM (Morning)', extraFee: 0 },
@@ -546,36 +460,7 @@ export const COUPONS: Coupon[] = [
   }
 ];
 
-export const DEFAULT_ADDRESSES: Address[] = [
-  {
-    id: 'addr-1',
-    title: 'المنزل',
-    city: 'الزقازيق',
-    neighborhood: 'حي الجامعة',
-    street: 'شارع السلام، متفرع من شارع المحافظة',
-    building: 'برج الأندلس (14)',
-    floor: 'الدور 4',
-    apartment: 'شقة 8',
-    landmark: 'بجوار صيدلية العزبي وأمام البنك الأهلي',
-    contactName: 'أحمد محمود العوضي',
-    contactPhone: '+20 101 234 5678',
-    isDefault: true
-  },
-  {
-    id: 'addr-2',
-    title: 'مقر العمل',
-    city: 'الزقازيق',
-    neighborhood: 'منطقة القومية',
-    street: 'شارع طلبة عويضة',
-    building: 'مبنى النور الإداري (3)',
-    floor: 'الدور 2',
-    apartment: 'مكتب 204',
-    landmark: 'أعلى مطعم كوك دور',
-    contactName: 'أحمد محمود',
-    contactPhone: '+20 101 234 5678',
-    isDefault: false
-  }
-];
+export const DEFAULT_ADDRESSES: Address[] = [];
 
 export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   {

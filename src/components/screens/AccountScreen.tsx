@@ -49,29 +49,60 @@ export const AccountScreen: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col p-4 pb-20 select-none">
       {/* 1. Profile Header Card */}
-      <div className="p-4 bg-white rounded-3xl border border-[#E5EEF4] mb-4 shadow-2xs flex items-center gap-3">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#08BDF4] to-[#079FD0] p-0.5 flex items-center justify-center text-white font-black text-xl shadow-md shadow-[#08BDF4]/20">
-          <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center text-[#079FD0]">
-            {user?.name ? user.name.slice(0, 1) : 'ع'}
+      <div className="p-4 bg-white rounded-3xl border border-[#E5EEF4] mb-4 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#08BDF4] to-[#079FD0] p-0.5 flex items-center justify-center text-white font-black text-xl shadow-md shadow-[#08BDF4]/20">
+            <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center text-[#079FD0]">
+              {user?.name ? user.name.slice(0, 1) : (language === 'ar' ? 'ز' : 'G')}
+            </div>
+          </div>
+
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-black text-[#183247]">
+                {user?.name || (language === 'ar' ? 'حساب زائر' : 'Guest User')}
+              </h2>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                user && !user.isGuest
+                  ? 'text-[#18A875] bg-emerald-50 border-emerald-200'
+                  : 'text-amber-700 bg-amber-50 border-amber-200'
+              }`}>
+                {user && !user.isGuest
+                  ? (language === 'ar' ? 'حساب موثق' : 'Verified')
+                  : (language === 'ar' ? 'وضع زائر' : 'Guest')}
+              </span>
+            </div>
+            {user?.phone ? (
+              <p className="text-xs text-[#718596] mt-0.5" dir="ltr">
+                {user.phone}
+              </p>
+            ) : (
+              <p className="text-xs text-[#718596] mt-0.5">
+                {language === 'ar' ? 'لم يتم تسجيل رقم هاتف' : 'No phone linked'}
+              </p>
+            )}
+            {user?.email && (
+              <p className="text-[11px] text-[#718596] truncate max-w-[180px]">
+                {user.email}
+              </p>
+            )}
           </div>
         </div>
 
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-black text-[#183247]">{user?.name || 'عميل عالسريع'}</h2>
-            <span className="text-[10px] font-bold text-[#18A875] bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              {language === 'ar' ? 'حساب موثق' : 'Verified'}
-            </span>
-          </div>
-          <p className="text-xs text-[#718596] mt-0.5" dir="ltr">
-            {user?.phone || '+20 101 234 5678'}
-          </p>
-          {user?.email && (
-            <p className="text-[11px] text-[#718596] truncate max-w-[180px]">
-              {user.email}
+        {/* If guest or not logged in, show quick sign-in banner */}
+        {(!user || user.isGuest) && (
+          <div className="mt-3 pt-3 border-t border-[#E5EEF4] flex items-center justify-between">
+            <p className="text-[11px] text-[#718596]">
+              {language === 'ar' ? 'سجل دخولك لحفظ عناوينك ومتابعة طلباتك' : 'Sign in to save addresses & track orders'}
             </p>
-          )}
-        </div>
+            <button
+              onClick={() => navigateTo('auth_phone')}
+              className="px-3 py-1.5 bg-[#08BDF4] hover:bg-[#079FD0] text-white text-xs font-bold rounded-xl transition cursor-pointer shrink-0"
+            >
+              {language === 'ar' ? 'دخول / تسجيل' : 'Sign In'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 2. Quick Settings Section */}
