@@ -6,15 +6,38 @@ export const SplashScreen: React.FC = () => {
   const { language, t, navigateTo } = useApp();
 
   useEffect(() => {
-    // Check if user has seen onboarding before
-    const hasSeenOnboarding = localStorage.getItem('alasaree_onboarded');
     const timer = setTimeout(() => {
-      if (hasSeenOnboarding) {
-        navigateTo('main');
-      } else {
-        navigateTo('onboarding');
+      // Check if user has an active real account (not guest and not fake)
+      const savedUser = localStorage.getItem('alasaree_user');
+      let hasRealAccount = false;
+      if (savedUser) {
+        try {
+          const parsed = JSON.parse(savedUser);
+          if (
+            parsed &&
+            !parsed.isGuest &&
+            parsed.name &&
+            parsed.name !== 'أحمد محمود العوضي' &&
+            !String(parsed.name).includes('العوضي')
+          ) {
+            hasRealAccount = true;
+          }
+        } catch {}
       }
-    }, 2200);
+
+      if (hasRealAccount) {
+        navigateTo('main');
+        return;
+      }
+
+      // No registered account: show onboarding if first time, or auth screen
+      const hasSeenOnboarding = localStorage.getItem('alasaree_onboarded');
+      if (!hasSeenOnboarding) {
+        navigateTo('onboarding');
+      } else {
+        navigateTo('auth_welcome');
+      }
+    }, 1800);
 
     return () => clearTimeout(timer);
   }, [navigateTo]);
