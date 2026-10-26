@@ -116,6 +116,9 @@ export const MobileShell: React.FC<MobileShellProps> = ({ children, onBackToLand
     { tab: 'account', label: t.navAccount, icon: <User className="w-5 h-5" /> }
   ];
 
+  // Height of our fixed bottom nav (approx 60px + safe area)
+  const NAV_HEIGHT = 'env(safe-area-inset-bottom, 0px)';
+
   return (
     <div className="min-h-screen bg-slate-100/90 text-[#183247] flex flex-col items-center justify-start p-0 md:py-6 selection:bg-[#08BDF4]/20 antialiased font-sans">
       
@@ -177,7 +180,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ children, onBackToLand
       {/* MAIN RESPONSIVE WEB APP CONTAINER                             */}
       {/* ============================================================== */}
       <div
-        className="w-full max-w-md min-h-[100dvh] md:min-h-[820px] md:max-h-[92vh] transition-all duration-200 relative bg-white flex flex-col overflow-hidden shadow-sm md:shadow-2xl md:rounded-3xl md:border md:border-slate-200/80"
+        className="w-full max-w-md min-h-[100dvh] md:min-h-[820px] md:max-h-[92vh] transition-all duration-200 relative bg-white flex flex-col md:overflow-hidden shadow-sm md:shadow-2xl md:rounded-3xl md:border md:border-slate-200/80"
       >
 
         {/* Secondary Screen Top App Bar with back navigation */}
@@ -213,46 +216,90 @@ export const MobileShell: React.FC<MobileShellProps> = ({ children, onBackToLand
         )}
 
         {/* Main Scrollable Viewport Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-[#F4FBFF]/40 flex flex-col no-scrollbar">
+        {/* On mobile with fixed bottom nav, add padding so content isn't hidden */}
+        <main
+          className="flex-1 overflow-y-auto overflow-x-hidden bg-[#F4FBFF]/40 flex flex-col no-scrollbar"
+          style={{
+            paddingBottom: currentScreen === 'main' ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : undefined
+          }}
+        >
           {children}
         </main>
 
         {/* ============================================================== */}
         {/* ROCK-SOLID FIXED BOTTOM FOOTER / NAVIGATION TAB BAR           */}
+        {/* On MOBILE: fixed to viewport bottom (outside scroll flow)      */}
+        {/* On DESKTOP (md+): stays inside the card as a normal flex item  */}
         {/* ============================================================== */}
         {currentScreen === 'main' && (
-          <nav
-            aria-label="Main Navigation"
-            className="shrink-0 bg-white/95 backdrop-blur-md border-t border-[#E5EEF4] px-1 py-1.5 flex items-center justify-around z-40 shadow-[0_-4px_16px_rgba(0,0,0,0.04)]"
-            style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
-          >
-            {navItems.map(item => {
-              const isActive = mainTab === item.tab;
-              return (
-                <button
-                  key={item.tab}
-                  onClick={() => setTab(item.tab)}
-                  className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all cursor-pointer relative ${
-                    isActive ? 'text-[#079FD0] font-black' : 'text-[#718596] hover:text-[#183247]'
-                  }`}
-                >
-                  <div
-                    className={`w-9 h-7 rounded-xl flex items-center justify-center transition-all ${
-                      isActive ? 'bg-[#EAF8FF] text-[#079FD0] shadow-2xs scale-105' : 'text-slate-500'
+          <>
+            {/* Mobile: truly fixed to bottom of the viewport */}
+            <nav
+              aria-label="Main Navigation"
+              className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-[#E5EEF4] px-1 py-1.5 flex items-center justify-around shadow-[0_-4px_20px_rgba(8,189,244,0.10)]"
+              style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
+            >
+              {navItems.map(item => {
+                const isActive = mainTab === item.tab;
+                return (
+                  <button
+                    key={item.tab}
+                    onClick={() => setTab(item.tab)}
+                    className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all cursor-pointer relative ${
+                      isActive ? 'text-[#079FD0] font-black' : 'text-[#718596] hover:text-[#183247]'
                     }`}
                   >
-                    {item.icon}
-                  </div>
-                  <span className="text-[10px] mt-0.5 tracking-tight whitespace-nowrap font-bold">
-                    {item.label}
-                  </span>
-                  {isActive && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#08BDF4] mt-0.5"></span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
+                    <div
+                      className={`w-9 h-7 rounded-xl flex items-center justify-center transition-all ${
+                        isActive ? 'bg-[#EAF8FF] text-[#079FD0] shadow-2xs scale-105' : 'text-slate-500'
+                      }`}
+                    >
+                      {item.icon}
+                    </div>
+                    <span className="text-[10px] mt-0.5 tracking-tight whitespace-nowrap font-bold">
+                      {item.label}
+                    </span>
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#08BDF4] mt-0.5"></span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Desktop: inside the card as a normal bottom bar */}
+            <nav
+              aria-label="Main Navigation"
+              className="hidden md:flex shrink-0 bg-white/95 backdrop-blur-md border-t border-[#E5EEF4] px-1 py-1.5 items-center justify-around z-40 shadow-[0_-4px_16px_rgba(0,0,0,0.04)]"
+            >
+              {navItems.map(item => {
+                const isActive = mainTab === item.tab;
+                return (
+                  <button
+                    key={item.tab}
+                    onClick={() => setTab(item.tab)}
+                    className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all cursor-pointer relative ${
+                      isActive ? 'text-[#079FD0] font-black' : 'text-[#718596] hover:text-[#183247]'
+                    }`}
+                  >
+                    <div
+                      className={`w-9 h-7 rounded-xl flex items-center justify-center transition-all ${
+                        isActive ? 'bg-[#EAF8FF] text-[#079FD0] shadow-2xs scale-105' : 'text-slate-500'
+                      }`}
+                    >
+                      {item.icon}
+                    </div>
+                    <span className="text-[10px] mt-0.5 tracking-tight whitespace-nowrap font-bold">
+                      {item.label}
+                    </span>
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#08BDF4] mt-0.5"></span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </>
         )}
 
         {/* Global Toast Overlay */}
