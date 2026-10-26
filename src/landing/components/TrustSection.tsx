@@ -1,102 +1,75 @@
 import React from 'react';
-import { Star, MapPin, ShieldCheck, Smartphone } from 'lucide-react';
-import { Language } from '../data/translations';
+import { Eye, Map, HeartHandshake, Award } from 'lucide-react';
+import { LandingTranslation, Language } from '../data/translations';
 
 interface TrustSectionProps {
-  t: any;
+  t: LandingTranslation;
   language: Language;
 }
 
-export const TrustSection: React.FC<TrustSectionProps> = ({ language }) => {
-  const isRtl = language === 'ar';
-
-  const features = [
+export const TrustSection: React.FC<TrustSectionProps> = ({ t, language }) => {
+  const principles = [
     {
-      icon: <Star className="w-5 h-5 text-[#08BDF4]" />,
-      title: isRtl ? 'تقييم حقيقي من عملاء حقيقيين' : 'Real ratings from real customers',
-      desc: isRtl
-        ? 'كل تقييم بيتحسب بعد كل طلب — مفيش تقييمات مزيفة ومفيش عملاء وهميين.'
-        : 'Every rating is earned after each order — no fake reviews, no bots.',
-      bg: 'bg-[#EAF8FF]'
+      title: t.trustPrinciple1Title,
+      desc: t.trustPrinciple1Desc,
+      icon: <Eye className="w-5 h-5 text-[#08BDF4]" />
     },
     {
-      icon: <MapPin className="w-5 h-5 text-[#08BDF4]" />,
-      title: isRtl ? 'بس في مصر، وبنكبر بحرص' : 'Egypt-only, growing carefully',
-      desc: isRtl
-        ? 'بدأنا بالزقازيق والمنصورة وبنتوسع بخطوات واضحة — مش بنوعد بحاجة قبل ما نقدر نوفرها.'
-        : 'Started with Zagazig and Mansoura, expanding step by step — we don\'t promise what we can\'t deliver.',
-      bg: 'bg-emerald-50'
+      title: t.trustPrinciple2Title,
+      desc: t.trustPrinciple2Desc,
+      icon: <Map className="w-5 h-5 text-[#08BDF4]" />
     },
     {
-      icon: <ShieldCheck className="w-5 h-5 text-[#08BDF4]" />,
-      title: isRtl ? 'شراكة مش مجرد تطبيق' : 'Partnership, not just an app',
-      desc: isRtl
-        ? 'أي مغسلة بتنضم بتعدي معيار اختيار حقيقي — مش بنقبل أي حد بدون معاينة ومتابعة مستمرة.'
-        : 'Every laundry partner goes through real vetting — no random sign-ups, we follow up continuously.',
-      bg: 'bg-purple-50'
+      title: t.trustPrinciple3Title,
+      desc: t.trustPrinciple3Desc,
+      icon: <HeartHandshake className="w-5 h-5 text-[#08BDF4]" />
     },
     {
-      icon: <Smartphone className="w-5 h-5 text-[#08BDF4]" />,
-      title: isRtl ? 'بتدفع بالطريقة اللي تريحك' : 'Pay however you like',
-      desc: isRtl
-        ? 'كاش، فودافون كاش، إنستاباي — كلهم بنفس السعر من غير رسوم إضافية أو مفاجآت.'
-        : 'Cash, Vodafone Cash, Instapay — all at the same price with no hidden fees.',
-      bg: 'bg-amber-50'
-    },
+      title: t.trustPrinciple4Title,
+      desc: t.trustPrinciple4Desc,
+      icon: <Award className="w-5 h-5 text-[#08BDF4]" />
+    }
   ];
 
   return (
-    <section className="py-24 bg-white border-t border-slate-100">
+    <section className="py-20 bg-[#F4FBFF]/40 border-t border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        {/* Two-column: text left, features right */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-
-          {/* Left: heading */}
-          <div>
-            <div className="text-[#08BDF4] text-xs font-bold uppercase tracking-widest mb-3">
-              {isRtl ? 'مختلفين عن غيرنا' : 'What sets us apart'}
-            </div>
-            <h2 className="text-4xl sm:text-5xl font-black text-[#0B1F2E] leading-tight mb-5">
-              {isRtl ? 'إيه اللي\nبيميزنا؟' : 'What makes\nus different?'}
-            </h2>
-            <p className="text-slate-500 text-base leading-relaxed mb-8">
-              {isRtl
-                ? 'مش بس تطبيق توصيل — عالسريع منظومة كاملة بتهتم بكل تفصيلة من ملابسك من لما بتطلب لحد ما بتستلمها.'
-                : 'Not just a delivery app — a complete system that cares about every detail from order to delivery.'}
-            </p>
-
-            {/* Center image decorative block */}
-            <div className="relative rounded-3xl overflow-hidden bg-[#0B1F2E] h-48 flex items-center justify-center">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#08BDF4]/20 to-transparent" />
-              <div className="text-center z-10">
-                <div className="text-5xl font-black text-[#08BDF4] leading-none">ع</div>
-                <div className="text-white font-black text-xl mt-1">عالسريع</div>
-                <div className="text-slate-400 text-xs mt-1">Ala El Saree</div>
-              </div>
-            </div>
+        
+        {/* Header */}
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <div className="text-xs font-bold text-[#079FD0] uppercase tracking-wider mb-2">
+            {language === 'ar' ? 'الشفافية أولاً' : 'Honesty & Transparency'}
           </div>
+          <h2 className="text-3xl sm:text-4xl font-black text-[#183247] tracking-tight mb-3">
+            {t.trustHeading}
+          </h2>
+          <p className="text-base text-slate-600 leading-relaxed">
+            {t.trustSubhead}
+          </p>
+        </div>
 
-          {/* Right: feature cards grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {features.map((f, i) => (
-              <div
-                key={i}
-                className="p-5 rounded-2xl border border-slate-100 bg-slate-50/60 hover:border-[#08BDF4]/30 hover:bg-[#EAF8FF]/40 transition-all group text-start"
-              >
-                <div className={`w-11 h-11 rounded-2xl ${f.bg} flex items-center justify-center mb-4 group-hover:scale-105 transition-transform`}>
-                  {f.icon}
+        {/* 4 Trust Principles */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-start">
+          {principles.map((p, idx) => (
+            <div
+              key={idx}
+              className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-11 h-11 rounded-2xl bg-[#EAF8FF] flex items-center justify-center mb-4">
+                  {p.icon}
                 </div>
-                <h3 className="text-sm font-black text-[#0B1F2E] mb-2 leading-snug">
-                  {f.title}
+                <h3 className="text-base font-black text-[#183247] mb-2 leading-snug">
+                  {p.title}
                 </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  {f.desc}
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {p.desc}
                 </p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
+
       </div>
     </section>
   );
