@@ -68,11 +68,22 @@ export interface LaundryPartner {
   badgeEn?: string;
 }
 
+export interface StainTreatmentOption {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  price: number;
+  icon?: string;
+  isAvailable?: boolean;
+}
+
 export interface OrderItemCustomization {
   serviceType: ServiceType;
-  fragrance: FragranceType;
-  starch: StarchLevel;
-  packaging: PackagingType;
+  stains?: string[];
+  stainCost?: number;
+  fragrance?: FragranceType;
+  starch?: StarchLevel;
+  packaging?: PackagingType;
   notes?: string;
 }
 

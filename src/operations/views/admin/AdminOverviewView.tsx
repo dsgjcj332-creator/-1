@@ -9,7 +9,9 @@ import {
   MapPin,
   Clock,
   ArrowUpRight,
-  ShieldAlert
+  ShieldAlert,
+  ShieldCheck,
+  Store
 } from 'lucide-react';
 
 interface AdminOverviewProps {
@@ -23,6 +25,8 @@ export const AdminOverviewView: React.FC<AdminOverviewProps> = ({ onNavigateTab 
     deliveryJobs,
     serviceZones,
     commissionConfig,
+    merchants,
+    drivers,
     language
   } = useOperations();
 
@@ -217,38 +221,47 @@ export const AdminOverviewView: React.FC<AdminOverviewProps> = ({ onNavigateTab 
           </div>
 
           <div className="space-y-3">
-            {serviceZones.map(zone => (
-              <div
-                key={zone.id}
-                className={`p-3.5 rounded-xl border transition ${
-                  zone.isActive
-                    ? 'border-emerald-200 bg-emerald-50/40'
-                    : 'border-slate-200 bg-slate-50 opacity-75'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="font-bold text-xs text-slate-900">
-                    {zone.nameAr} - {zone.governorateAr}
+            {serviceZones.map(zone => {
+              const zoneLaundries = merchants.filter(
+                m => m.status === 'active' && (m.city.includes(zone.nameAr) || zone.nameAr.includes(m.city))
+              ).length;
+              const zoneDrivers = drivers.filter(
+                d => d.status === 'active' && (d.serviceZone.includes(zone.nameAr) || zone.nameAr.includes(d.serviceZone))
+              ).length;
+
+              return (
+                <div
+                  key={zone.id}
+                  className={`p-3.5 rounded-xl border transition ${
+                    zone.isActive
+                      ? 'border-emerald-200 bg-emerald-50/40'
+                      : 'border-slate-200 bg-slate-50 opacity-75'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-xs text-slate-900">
+                      {zone.nameAr} - {zone.governorateAr}
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        zone.isActive
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-slate-300 text-slate-700'
+                      }`}
+                    >
+                      {zone.isActive
+                        ? isRtl ? 'مفعل للإطلاق' : 'Active'
+                        : isRtl ? 'توسع مستقبلي' : 'Planned'}
+                    </span>
                   </div>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      zone.isActive
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-slate-300 text-slate-700'
-                    }`}
-                  >
-                    {zone.isActive
-                      ? isRtl ? 'مفعل للإطلاق' : 'Active'
-                      : isRtl ? 'توسع مستقبلي' : 'Planned'}
-                  </span>
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2">
+                    <span>{isRtl ? `${zoneLaundries} مغاسل معتمدة` : `${zoneLaundries} laundries`}</span>
+                    <span>{isRtl ? `${zoneDrivers} مناديب نشطين` : `${zoneDrivers} drivers`}</span>
+                    <span className="font-semibold text-slate-700">{zone.deliveryBaseFeeEgp} ج.م توصيل</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2">
-                  <span>{isRtl ? `${zone.activeLaundriesCount} مغاسل معتمدة` : `${zone.activeLaundriesCount} laundries`}</span>
-                  <span>{isRtl ? `${zone.activeDriversCount} مناديب نشطين` : `${zone.activeDriversCount} drivers`}</span>
-                  <span className="font-semibold text-slate-700">{zone.deliveryBaseFeeEgp} ج.م توصيل</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -265,6 +278,23 @@ export const AdminOverviewView: React.FC<AdminOverviewProps> = ({ onNavigateTab 
           </div>
 
           <div className="space-y-2.5">
+            {/* If there are no urgent actions, show clean empty state */}
+            {newApplications === 0 && orders.filter(o => o.status === 'inspection_required' || o.status === 'awaiting_customer_approval' || o.status === 'ready_for_delivery').length === 0 && (
+              <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-xl space-y-2">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div className="text-xs font-bold text-slate-800">
+                  {isRtl ? 'المنظومة التشغيلية في حالة استقرار تام' : 'All systems operating normally'}
+                </div>
+                <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                  {isRtl
+                    ? 'لا توجد إجراءات عاجلة حالياً. ستظهر طلبات انضمام المغاسل الجديدة والطلبات الجارية هنا فور تسجيلها مباشرة.'
+                    : 'No urgent interventions needed. Incoming customer orders and new merchant applications will appear here live.'}
+                </p>
+              </div>
+            )}
+
             {/* If there are pending applications */}
             {newApplications > 0 && (
               <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-3">

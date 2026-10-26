@@ -127,7 +127,7 @@ const OperationsContent: React.FC<{ onLogout?: () => void }> = ({ onLogout }) =>
 
       <div className="flex-1 flex overflow-hidden relative">
         {/* Desktop Persistent Sidebar */}
-        <Sidebar currentTab={activeTab} onSelectTab={setActiveTab} />
+        <Sidebar currentTab={activeTab} onSelectTab={setActiveTab} onLogout={onLogout} />
 
         {/* Mobile Slide-Over Drawer Navigation */}
         {isMobileMenuOpen && (
@@ -151,6 +151,7 @@ const OperationsContent: React.FC<{ onLogout?: () => void }> = ({ onLogout }) =>
                 onSelectTab={setActiveTab}
                 isMobileDrawer={true}
                 onCloseMobile={() => setIsMobileMenuOpen(false)}
+                onLogout={onLogout}
               />
             </div>
           </div>

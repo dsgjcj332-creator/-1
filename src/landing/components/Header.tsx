@@ -104,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </nav>
 
-          {/* Zone 3: Actions (Language switcher, Join Partner, and Customer App CTA) */}
+          {/* Zone 3: Actions (Language switcher, Icon-Only Login/Register, and Customer App CTA) */}
           <div className="hidden sm:flex items-center gap-3 shrink-0">
             {/* Language Switcher */}
             <button
@@ -117,22 +117,14 @@ export const Header: React.FC<HeaderProps> = ({
               <span>{t.toggleLang}</span>
             </button>
 
-            {/* Secondary CTA: Laundry Partner Form */}
-            <button
-              onClick={() => scrollToSection('merchant-application')}
-              className="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer whitespace-nowrap flex items-center gap-1.5"
-            >
-              <Store className="w-3.5 h-3.5 text-[#08BDF4]" />
-              <span>{t.navJoinPartner}</span>
-            </button>
-
-            {/* Primary Action: Register / Login */}
+            {/* Icon-Only Login / Register Button styled with visual identity */}
             <button
               onClick={onOpenRegister}
-              className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-[#E5EEF4] hover:bg-slate-50 rounded-xl transition shadow-sm cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+              className="w-10 h-10 rounded-2xl bg-white border border-[#E5EEF4] hover:border-[#08BDF4] hover:bg-[#F4FBFF] shadow-xs hover:shadow-md hover:shadow-[#08BDF4]/15 active:scale-95 transition-all flex items-center justify-center cursor-pointer group"
+              title={language === 'ar' ? 'تسجيل الدخول / طلب شراكة' : 'Login / Partner Registration'}
+              aria-label={language === 'ar' ? 'تسجيل الدخول أو إنشاء حساب' : 'Login or register'}
             >
-              <User className="w-3.5 h-3.5 text-[#08BDF4]" />
-              <span>{t.navRegister}</span>
+              <User className="w-4 h-4 text-[#08BDF4] group-hover:scale-110 transition-transform" />
             </button>
 
             {/* Primary Action: Customer App Experience */}
@@ -145,8 +137,17 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Actions: Icon-Only Account/Register + Language + Menu Toggle */}
           <div className="flex sm:hidden items-center gap-2">
+            <button
+              onClick={onOpenRegister}
+              className="w-9 h-9 rounded-xl bg-white border border-[#E5EEF4] hover:border-[#08BDF4] hover:bg-[#F4FBFF] shadow-xs active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+              title={language === 'ar' ? 'تسجيل الدخول / طلب شراكة' : 'Account & Registration'}
+              aria-label="Account"
+            >
+              <User className="w-4 h-4 text-[#08BDF4]" />
+            </button>
+
             <button
               onClick={onToggleLanguage}
               className="p-2 text-xs font-bold text-slate-700 bg-slate-100 rounded-lg flex items-center gap-1"
@@ -203,14 +204,6 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <div className="pt-3 border-t border-slate-100 flex flex-col gap-2.5">
-              <button
-                onClick={() => scrollToSection('merchant-application')}
-                className="w-full py-3 px-4 text-xs font-bold text-slate-700 bg-slate-100 rounded-xl text-center flex items-center justify-center gap-2"
-              >
-                <Store className="w-4 h-4 text-[#08BDF4]" />
-                <span>{t.navJoinPartner}</span>
-              </button>
-
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);

@@ -6,7 +6,6 @@ import { CustomerSection } from './components/CustomerSection';
 import { ServicesSection } from './components/ServicesSection';
 import { HowItWorksSection } from './components/HowItWorksSection';
 import { LaundryPartnerSection } from './components/LaundryPartnerSection';
-import { MerchantApplicationForm } from './components/MerchantApplicationForm';
 import { DeliveryPartnerSection } from './components/DeliveryPartnerSection';
 import { TrustSection } from './components/TrustSection';
 import { FaqSection } from './components/FaqSection';
@@ -50,13 +49,6 @@ export const CorporateLandingPage: React.FC<CorporateLandingPageProps> = ({
     setLanguage(prev => (prev === 'ar' ? 'en' : 'ar'));
   };
 
-  const handleScrollToMerchantForm = () => {
-    const el = document.getElementById('merchant-application');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-white text-[#183247] antialiased selection:bg-[#08BDF4]/20 flex flex-col font-sans">
       
@@ -76,7 +68,7 @@ export const CorporateLandingPage: React.FC<CorporateLandingPageProps> = ({
           t={t}
           language={language}
           onOpenAppDownload={onOpenAppDownload}
-          onScrollToMerchant={handleScrollToMerchantForm}
+          onScrollToMerchant={onOpenRegister}
         />
 
         {/* 3. Customer Benefits & Journey */}
@@ -102,16 +94,10 @@ export const CorporateLandingPage: React.FC<CorporateLandingPageProps> = ({
         <LaundryPartnerSection
           t={t}
           language={language}
-          onScrollToForm={handleScrollToMerchantForm}
+          onScrollToForm={onOpenRegister}
         />
 
-        {/* 7. Merchant Partnership Application Form */}
-        <MerchantApplicationForm
-          t={t}
-          language={language}
-        />
-
-        {/* 8. Delivery Partner Section */}
+        {/* 7. Delivery Partner Section */}
         <DeliveryPartnerSection
           t={t}
           language={language}
@@ -136,6 +122,7 @@ export const CorporateLandingPage: React.FC<CorporateLandingPageProps> = ({
         language={language}
         onToggleLanguage={handleToggleLanguage}
         onOpenAppDownload={onOpenAppDownload}
+        onOpenRegister={onOpenRegister}
         onOpenLegal={type => setLegalModalType(type)}
       />
 

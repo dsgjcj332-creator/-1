@@ -54,8 +54,8 @@ export const GarmentPhotosScreen: React.FC = () => {
     const nameEn = garment ? garment.nameEn : 'Garment item';
     const icon = garment ? garment.icon : '👕';
     const serviceName = t[`service_${item.customization.serviceType}` as keyof typeof t] || '';
-    const fragranceName = t[`fragrance_${item.customization.fragrance}` as keyof typeof t] || '';
-    const custLabel = `${serviceName} • ${fragranceName}`;
+    const stainsCount = item.customization.stains?.length || 0;
+    const custLabel = stainsCount > 0 ? `${serviceName} • ${stainsCount} معالجة بقع` : serviceName;
 
     for (let i = 0; i < item.quantity; i++) {
       expandedPieces.push({
@@ -134,7 +134,7 @@ export const GarmentPhotosScreen: React.FC = () => {
   };
 
   const handleProceed = () => {
-    navigateTo('partner_select');
+    navigateTo('pickup_schedule');
   };
 
   const handleFillAllDemo = () => {
@@ -148,22 +148,23 @@ export const GarmentPhotosScreen: React.FC = () => {
       {/* 1. Step Indicator Bar */}
       <div className="bg-white p-3 rounded-2xl border border-[#E5EEF4] mb-4 shadow-2xs">
         <div className="flex items-center justify-between text-[11px] font-bold">
-          <div className="flex items-center gap-1.5 text-[#18A875]">
+          <div className="flex items-center gap-1 text-[#18A875]">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{language === 'ar' ? 'القطع (تم)' : 'Garments'}</span>
+            <span>{language === 'ar' ? 'المغسلة' : 'Laundry'}</span>
           </div>
           <span className="text-[#718596]">←</span>
-          <div className="flex items-center gap-1.5 text-[#079FD0] bg-[#EAF8FF] px-2 py-0.5 rounded-lg border border-[#08BDF4]/30">
+          <div className="flex items-center gap-1 text-[#18A875]">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>{language === 'ar' ? 'القطع' : 'Garments'}</span>
+          </div>
+          <span className="text-[#718596]">←</span>
+          <div className="flex items-center gap-1 text-[#079FD0] bg-[#EAF8FF] px-2 py-0.5 rounded-lg border border-[#08BDF4]/30">
             <Camera className="w-3.5 h-3.5 animate-pulse" />
-            <span>{language === 'ar' ? 'التصوير (الحالية)' : 'Photos'}</span>
+            <span>{language === 'ar' ? 'التصوير' : 'Photos'}</span>
           </div>
           <span className="text-[#718596]">←</span>
-          <div className="flex items-center gap-1.5 text-[#718596]">
-            <span>{language === 'ar' ? 'المغسلة والموعد' : 'Schedule'}</span>
-          </div>
-          <span className="text-[#718596]">←</span>
-          <div className="flex items-center gap-1.5 text-[#718596]">
-            <span>{language === 'ar' ? 'التأكيد' : 'Confirm'}</span>
+          <div className="flex items-center gap-1 text-[#718596]">
+            <span>{language === 'ar' ? 'الموعد' : 'Schedule'}</span>
           </div>
         </div>
       </div>

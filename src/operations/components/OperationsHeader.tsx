@@ -346,6 +346,16 @@ export const OperationsHeader: React.FC<OperationsHeaderProps> = ({
               <Globe className="w-3.5 h-3.5 text-[#08BDF4]" />
               <span className="hidden sm:inline">{language === 'ar' ? 'English' : 'عربي'}</span>
             </button>
+
+            {/* Direct Logout Button */}
+            <button
+              onClick={() => setShowLogoutConfirm(true)}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-bold transition cursor-pointer"
+              title={isRtl ? 'تسجيل الخروج من المنظومة' : 'Sign Out'}
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{isRtl ? 'تسجيل خروج' : 'Logout'}</span>
+            </button>
           </div>
         </div>
       </header>

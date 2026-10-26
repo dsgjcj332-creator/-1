@@ -35,7 +35,7 @@ export const PartnerSelectScreen: React.FC = () => {
   const partnersToShow = cityPartners.length > 0 ? cityPartners : partnersList;
 
   const [activePartnerId, setActivePartnerId] = useState<string>(
-    selectedPartner?.id || partnersToShow[0]?.id || 'm-zag-01'
+    selectedPartner?.id || partnersToShow[0]?.id || ''
   );
 
   const handleSelect = (partner: LaundryPartner) => {
@@ -43,18 +43,65 @@ export const PartnerSelectScreen: React.FC = () => {
     setSelectedPartner(partner);
   };
 
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  React.useEffect(() => {
+    const handleSettingsUpdated = () => setRefreshTick(t => t + 1);
+    window.addEventListener('ala_el_saree_merchant_settings_updated', handleSettingsUpdated);
+    return () => window.removeEventListener('ala_el_saree_merchant_settings_updated', handleSettingsUpdated);
+  }, []);
+
+  const getPartnerLiveSettings = (partner: LaundryPartner) => {
+    try {
+      const raw = localStorage.getItem(`ala_el_saree_merchant_settings_${partner.id}`);
+      if (raw) {
+        const s = JSON.parse(raw);
+        return {
+          estimatedHours: s.estimatedHours ?? partner.estimatedHours,
+          deliveryFee: s.deliveryFee ?? partner.deliveryFee,
+          minOrderAmount: s.minOrderAmount ?? partner.minOrderAmount,
+          expressAvailable: s.expressAvailable !== undefined ? s.expressAvailable : partner.expressAvailable,
+          expressHours: s.expressHours ?? partner.expressHours
+        };
+      }
+    } catch {}
+    return {
+      estimatedHours: partner.estimatedHours,
+      deliveryFee: partner.deliveryFee,
+      minOrderAmount: partner.minOrderAmount,
+      expressAvailable: partner.expressAvailable,
+      expressHours: partner.expressHours
+    };
+  };
+
+  const getPartnerPreviewPrices = (partnerId: string) => {
+    try {
+      const raw = localStorage.getItem(`ala_el_saree_merchant_catalog_${partnerId}`);
+      if (raw) {
+        const catalog = JSON.parse(raw);
+        const tshirt = catalog.find((c: any) => c.id === 'g-tshirt');
+        const shirt = catalog.find((c: any) => c.id === 'g-shirt');
+        const suit = catalog.find((c: any) => c.id === 'g-suit-2pc');
+        return {
+          tshirt: tshirt?.priceWashIron ?? 25,
+          shirt: shirt?.priceWashIron ?? 30,
+          suit: suit?.priceWashIron ?? 110,
+        };
+      }
+    } catch {
+      // fallback
+    }
+    return { tshirt: 25, shirt: 30, suit: 110 };
+  };
+
   const handleContinue = () => {
     const chosen = partnersToShow.find(p => p.id === activePartnerId) || partnersToShow[0];
-    if (cartSubtotal < chosen.minOrderAmount) {
-      showToast(
-        language === 'ar'
-          ? `الحد الأدنى لطلب هذه المغسلة هو ${chosen.minOrderAmount} ج.م`
-          : `Minimum order for this partner is ${chosen.minOrderAmount} EGP`
-      );
+    if (!chosen) {
+      showToast(language === 'ar' ? 'برجاء اختيار مغسلة للمتابعة' : 'Please select a laundry to continue');
       return;
     }
     setSelectedPartner(chosen);
-    navigateTo('pickup_schedule');
+    navigateTo('garment_select');
   };
 
   return (
@@ -73,6 +120,7 @@ export const PartnerSelectScreen: React.FC = () => {
       <div className="flex flex-col gap-3">
         {partnersToShow.map(partner => {
           const isSelected = activePartnerId === partner.id;
+          const live = getPartnerLiveSettings(partner);
 
           return (
             <div
@@ -116,7 +164,7 @@ export const PartnerSelectScreen: React.FC = () => {
                     {language === 'ar' ? 'وقت الإنجاز' : 'Turnaround'}
                   </span>
                   <span className="font-bold text-[#183247]">
-                    {partner.estimatedHours} {language === 'ar' ? 'ساعة' : 'hrs'}
+                    {live.estimatedHours} {language === 'ar' ? 'ساعة' : 'hrs'}
                   </span>
                 </div>
                 <div>
@@ -124,7 +172,7 @@ export const PartnerSelectScreen: React.FC = () => {
                     {language === 'ar' ? 'رسوم التوصيل' : 'Delivery Fee'}
                   </span>
                   <span className="font-bold text-[#079FD0]">
-                    {partner.deliveryFee} {t.currency}
+                    {live.deliveryFee} {t.currency}
                   </span>
                 </div>
                 <div>
@@ -132,23 +180,47 @@ export const PartnerSelectScreen: React.FC = () => {
                     {language === 'ar' ? 'الحد الأدنى' : 'Min Order'}
                   </span>
                   <span className="font-bold text-[#183247]">
-                    {partner.minOrderAmount} {t.currency}
+                    {live.minOrderAmount} {t.currency}
                   </span>
                 </div>
               </div>
 
+              {/* Sample Prices Preview */}
+              {(() => {
+                const samplePrices = getPartnerPreviewPrices(partner.id);
+                return (
+                  <div className="flex items-center gap-1.5 pt-1 flex-wrap text-[11px]">
+                    <span className="text-[10px] font-bold text-[#183247]">
+                      {language === 'ar' ? 'عيّنة أسعار الغسيل والكي:' : 'Sample Wash & Iron:'}
+                    </span>
+                    <span className="bg-[#F4FBFF] px-2 py-0.5 rounded-lg border border-[#E5EEF4] text-[#718596]">
+                      {language === 'ar' ? 'تيشيرت:' : 'T-shirt:'}{' '}
+                      <b className="text-[#079FD0]">{samplePrices.tshirt} {t.currency}</b>
+                    </span>
+                    <span className="bg-[#F4FBFF] px-2 py-0.5 rounded-lg border border-[#E5EEF4] text-[#718596]">
+                      {language === 'ar' ? 'قميص:' : 'Shirt:'}{' '}
+                      <b className="text-[#079FD0]">{samplePrices.shirt} {t.currency}</b>
+                    </span>
+                    <span className="bg-[#F4FBFF] px-2 py-0.5 rounded-lg border border-[#E5EEF4] text-[#718596]">
+                      {language === 'ar' ? 'بدلة:' : 'Suit:'}{' '}
+                      <b className="text-[#079FD0]">{samplePrices.suit} {t.currency}</b>
+                    </span>
+                  </div>
+                );
+              })()}
+
               {/* Express availability tag */}
-              <div className="flex items-center justify-between text-xs">
-                {partner.expressAvailable ? (
+              <div className="flex items-center justify-between text-xs pt-1">
+                {live.expressAvailable ? (
                   <span className="text-[11px] font-semibold text-[#18A875] flex items-center gap-1">
                     <Zap className="w-3.5 h-3.5 fill-[#18A875]" />
                     {language === 'ar'
-                      ? `خدمة سريعة متاحة خلال ${partner.expressHours} ساعات`
-                      : `Express ready in ${partner.expressHours} hrs`}
+                      ? `خدمة سريعة متاحة خلال ${live.expressHours} ساعات`
+                      : `Express ready in ${live.expressHours} hrs`}
                   </span>
                 ) : (
                   <span className="text-[11px] text-[#718596]">
-                    {language === 'ar' ? 'الخدمة العادية خلال 24 ساعة' : 'Standard 24h service'}
+                    {language === 'ar' ? `الخدمة العادية خلال ${live.estimatedHours} ساعة` : `Standard ${live.estimatedHours}h service`}
                   </span>
                 )}
 
@@ -161,6 +233,17 @@ export const PartnerSelectScreen: React.FC = () => {
             </div>
           );
         })}
+
+        {partnersToShow.length === 0 && (
+          <div className="p-8 text-center bg-white rounded-2xl border border-[#E5EEF4]">
+            <p className="text-sm font-bold text-[#183247] mb-1">
+              {language === 'ar' ? 'لا توجد مغاسل معتمدة في منطقتك حالياً' : 'No certified laundries available in your area'}
+            </p>
+            <p className="text-xs text-[#718596]">
+              {language === 'ar' ? 'سيتم إضافة مغاسل جديدة قريباً' : 'New partners will be added soon'}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Floating Bottom Action */}
@@ -172,7 +255,7 @@ export const PartnerSelectScreen: React.FC = () => {
           onClick={handleContinue}
           className="w-full h-13 rounded-2xl bg-[#08BDF4] hover:bg-[#079FD0] active:scale-[0.98] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-[#08BDF4]/25 transition cursor-pointer"
         >
-          <span>{language === 'ar' ? 'متابعة إلى تحديد موعد الاستلام' : 'Continue to Pickup Schedule'}</span>
+          <span>{language === 'ar' ? 'متابعة لاختيار القطع والملابس' : 'Continue to Select Garments'}</span>
           {language === 'ar' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
         </button>
       </div>

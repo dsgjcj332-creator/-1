@@ -5,7 +5,8 @@ import {
   Coupon,
   Address,
   Order,
-  AppNotification
+  AppNotification,
+  StainTreatmentOption
 } from '../types';
 
 export const CITIES = [
@@ -437,7 +438,7 @@ export const LAUNDRY_PARTNERS: LaundryPartner[] = [
     rating: 4.9,
     ratingCount: 384,
     estimatedHours: 24,
-    minOrderAmount: 80,
+    minOrderAmount: 20,
     deliveryFee: 20,
     expressAvailable: true,
     expressHours: 6,
@@ -454,7 +455,7 @@ export const LAUNDRY_PARTNERS: LaundryPartner[] = [
     rating: 4.8,
     ratingCount: 245,
     estimatedHours: 24,
-    minOrderAmount: 70,
+    minOrderAmount: 20,
     deliveryFee: 15,
     expressAvailable: true,
     expressHours: 8,
@@ -471,7 +472,7 @@ export const LAUNDRY_PARTNERS: LaundryPartner[] = [
     rating: 4.9,
     ratingCount: 520,
     estimatedHours: 24,
-    minOrderAmount: 90,
+    minOrderAmount: 20,
     deliveryFee: 25,
     expressAvailable: true,
     expressHours: 6,
@@ -610,158 +611,57 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   }
 ];
 
-export const INITIAL_ORDERS: Order[] = [
+export const INITIAL_ORDERS: Order[] = [];
+
+export const DEFAULT_STAIN_OPTIONS: StainTreatmentOption[] = [
   {
-    id: 'order-active-1',
-    referenceNumber: 'AS-9482',
-    createdAt: '2026-10-21 09:30',
-    customerId: 'user-ahmed',
-    partnerId: 'partner-nile-royal',
-    items: [
-      {
-        garmentId: 'g-shirt',
-        quantity: 3,
-        customization: {
-          serviceType: 'wash_iron',
-          fragrance: 'breeze',
-          starch: 'light',
-          packaging: 'hanger'
-        },
-        unitPrice: 35
-      },
-      {
-        garmentId: 'g-pants-classic',
-        quantity: 2,
-        customization: {
-          serviceType: 'wash_iron',
-          fragrance: 'breeze',
-          starch: 'medium',
-          packaging: 'hanger'
-        },
-        unitPrice: 35
-      },
-      {
-        garmentId: 'g-jalabiya-white',
-        quantity: 1,
-        customization: {
-          serviceType: 'wash_iron',
-          fragrance: 'oud',
-          starch: 'high',
-          packaging: 'folded'
-        },
-        unitPrice: 45
-      }
-    ],
-    pickup: {
-      date: '2026-10-21',
-      timeSlot: '01:00 م - 04:00 م (بعد الظهر)',
-      method: 'doorstep'
-    },
-    delivery: {
-      date: '2026-10-22',
-      timeSlot: '05:00 م - 08:00 م (مسائي - المفضل)',
-      isExpress: false,
-      instructions: 'يرجى الاتصال عند الوصول لباب العمارة'
-    },
-    address: DEFAULT_ADDRESSES[0],
-    paymentMethod: 'cod',
-    subtotal: 220,
-    deliveryFee: 20,
-    expressFee: 0,
-    discount: 20,
-    finalTotal: 220,
-    status: 'courier_to_pickup',
-    statusHistory: [
-      {
-        status: 'order_received',
-        timestamp: '09:30 ص',
-        titleAr: 'تم استلام طلبك بنجاح',
-        titleEn: 'Order Received',
-        descriptionAr: 'تم تسجيل طلبك وتعيين مغسلة النيل الملكية كشريك معتمد.',
-        descriptionEn: 'Your order was registered and assigned to Nile Royal Cleaners.'
-      },
-      {
-        status: 'order_confirmed',
-        timestamp: '09:35 ص',
-        titleAr: 'تم تأكيد موعد الاستلام',
-        titleEn: 'Pickup Confirmed',
-        descriptionAr: 'المغسلة قبلت طلبك وموعد الاستلام اليوم بين 1:00 و 4:00 عصراً.',
-        descriptionEn: 'Partner accepted the order for today between 1:00 PM and 4:00 PM.'
-      },
-      {
-        status: 'courier_to_pickup',
-        timestamp: '10:15 ص',
-        titleAr: 'المندوب في الطريق للاستلام',
-        titleEn: 'Courier on the way to pick up',
-        descriptionAr: 'الكابتن محمود يتجه الآن لعنوانك في حي الجامعة لاستلام الملابس.',
-        descriptionEn: 'Captain Mahmoud is heading to your address in University District.'
-      }
-    ]
+    id: 'stain_oil_grease',
+    nameAr: 'بقع دهون وزيوت طعام',
+    nameEn: 'Oil & Grease Stains',
+    price: 10,
+    icon: '🛢️',
+    isAvailable: true
   },
   {
-    id: 'order-past-1',
-    referenceNumber: 'AS-7219',
-    createdAt: '2026-10-14 11:20',
-    customerId: 'user-ahmed',
-    partnerId: 'partner-nile-royal',
-    items: [
-      {
-        garmentId: 'g-suit-2pc',
-        quantity: 1,
-        customization: {
-          serviceType: 'dry_clean',
-          fragrance: 'oud',
-          starch: 'medium',
-          packaging: 'hanger'
-        },
-        unitPrice: 150
-      },
-      {
-        garmentId: 'g-shirt',
-        quantity: 2,
-        customization: {
-          serviceType: 'wash_iron',
-          fragrance: 'breeze',
-          starch: 'light',
-          packaging: 'hanger'
-        },
-        unitPrice: 35
-      }
-    ],
-    pickup: {
-      date: '2026-10-14',
-      timeSlot: '05:00 م - 08:00 م (مسائي - المفضل)',
-      method: 'doorstep'
-    },
-    delivery: {
-      date: '2026-10-15',
-      timeSlot: '05:00 م - 08:00 م (مسائي - المفضل)',
-      isExpress: false
-    },
-    address: DEFAULT_ADDRESSES[0],
-    paymentMethod: 'instapay',
-    subtotal: 220,
-    deliveryFee: 20,
-    expressFee: 0,
-    discount: 0,
-    finalTotal: 240,
-    status: 'delivered',
-    statusHistory: [
-      {
-        status: 'delivered',
-        timestamp: '15 أكتوبر 06:40 م',
-        titleAr: 'تم تسليم الملابس بنجاح',
-        titleEn: 'Order Delivered',
-        descriptionAr: 'تم استلام الملابس بحالة ممتازة ومعقمة ومكوية.',
-        descriptionEn: 'Garments delivered freshly cleaned and pressed.'
-      }
-    ],
-    rating: {
-      serviceRating: 5,
-      pickupRating: 5,
-      deliveryRating: 5,
-      comment: 'خدمة فوق الممتازة ورائحة العود في الملابس جميلة جداً.. شكراً عالسريع!',
-      createdAt: '2026-10-15 19:10'
-    }
+    id: 'stain_ink',
+    nameAr: 'بقع حبر جاف / سائل',
+    nameEn: 'Ink & Pen Stains',
+    price: 15,
+    icon: '✒️',
+    isAvailable: true
+  },
+  {
+    id: 'stain_coffee_tea',
+    nameAr: 'بقع قهوة وشاي وعصائر',
+    nameEn: 'Coffee, Tea & Juice',
+    price: 10,
+    icon: '☕',
+    isAvailable: true
+  },
+  {
+    id: 'stain_blood_sauce',
+    nameAr: 'بقع دم / صلصة وطماطم',
+    nameEn: 'Blood & Tomato Sauce',
+    price: 15,
+    icon: '🥫',
+    isAvailable: true
+  },
+  {
+    id: 'stain_collar_cuff',
+    nameAr: 'اصفرار ياقة القميص والأساور',
+    nameEn: 'Collar & Cuff Yellowing',
+    price: 12,
+    icon: '👔',
+    isAvailable: true
+  },
+  {
+    id: 'stain_color_transfer',
+    nameAr: 'بهتان واختلاط ألوان معقد',
+    nameEn: 'Color Bleed & Transfer',
+    price: 20,
+    icon: '🎨',
+    isAvailable: true
   }
 ];
+
+

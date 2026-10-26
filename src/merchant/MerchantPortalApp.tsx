@@ -47,6 +47,7 @@ const MerchantPortalContent: React.FC<MerchantPortalAppProps> = ({ onBackToLandi
         onOpenScannerModal={() => setIsScannerModalOpen(true)}
         activeTab={activeTab}
         onSelectTab={setActiveTab}
+        onBackToLanding={onBackToLanding}
       />
 
       {/* Main View Area */}
@@ -113,8 +114,9 @@ const MerchantPortalContent: React.FC<MerchantPortalAppProps> = ({ onBackToLandi
 
       {/* Login / Branch Switcher Modal */}
       <MerchantLoginModal
-        isOpen={isLoginModalOpen || !isAuthenticated}
+        isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
+        onBackToLanding={onBackToLanding}
       />
     </div>
   );

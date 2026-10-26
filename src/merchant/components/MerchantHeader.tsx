@@ -25,6 +25,7 @@ interface MerchantHeaderProps {
   onOpenScannerModal: () => void;
   activeTab: string;
   onSelectTab: (tab: string) => void;
+  onBackToLanding?: () => void;
 }
 
 export const MerchantHeader: React.FC<MerchantHeaderProps> = ({
@@ -33,7 +34,8 @@ export const MerchantHeader: React.FC<MerchantHeaderProps> = ({
   onOpenLoginModal,
   onOpenScannerModal,
   activeTab,
-  onSelectTab
+  onSelectTab,
+  onBackToLanding
 }) => {
   const {
     activeMerchant,
@@ -119,19 +121,13 @@ export const MerchantHeader: React.FC<MerchantHeaderProps> = ({
                 <span className="hidden lg:inline">{language === 'ar' ? 'English' : 'عربي'}</span>
               </button>
 
-              {/* Switch Branch & Logout */}
+              {/* Logout */}
               <div className="flex items-center gap-1 border-r border-slate-200 pr-1.5 mr-0.5 sm:pr-2 sm:mr-1">
                 <button
-                  onClick={onOpenLoginModal}
-                  className="p-1.5 text-slate-600 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition text-xs flex items-center gap-1 cursor-pointer"
-                  title="تبديل الفرع"
-                >
-                  <Store className="w-4 h-4" />
-                  <span className="hidden xl:inline text-[11px] font-bold">الفرع</span>
-                </button>
-
-                <button
-                  onClick={logout}
+                  onClick={() => {
+                    logout();
+                    if (onBackToLanding) onBackToLanding();
+                  }}
                   className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                   title="تسجيل خروج"
                 >
@@ -227,7 +223,7 @@ export const MerchantHeader: React.FC<MerchantHeaderProps> = ({
                 }`}
               >
                 <Settings className="w-3.5 h-3.5" />
-                <span>إعدادات الفرع</span>
+                <span>الإعدادات</span>
               </button>
             </div>
 

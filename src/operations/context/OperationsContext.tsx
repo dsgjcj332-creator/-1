@@ -89,6 +89,7 @@ interface OperationsContextType {
   startOrderProcessing: (orderId: string) => void;
   markOrderReadyForDelivery: (orderId: string) => void;
   completeOrder: (orderId: string) => void;
+  advanceOrderStage: (orderId: string, step: 1 | 2 | 3) => void;
 
   // Delivery & Dispatch actions (Dispatcher & Driver)
   assignDriverToJob: (jobId: string, driverId: string) => void;
@@ -122,11 +123,46 @@ interface OperationsContextType {
 }
 
 const STORAGE_KEY_PREFIX = 'ala_el_saree_ops_';
+const STORAGE_CLEANUP_KEY = 'ala_el_saree_v2_clean_real';
+
+// Auto-purge any stale mock data from previous sessions
+try {
+  if (!localStorage.getItem(STORAGE_CLEANUP_KEY)) {
+    localStorage.removeItem(STORAGE_KEY_PREFIX + 'orders');
+    localStorage.removeItem(STORAGE_KEY_PREFIX + 'applications');
+    localStorage.removeItem(STORAGE_KEY_PREFIX + 'delivery_jobs');
+    localStorage.removeItem(STORAGE_KEY_PREFIX + 'settlements');
+    localStorage.removeItem(STORAGE_KEY_PREFIX + 'support_tickets');
+    localStorage.removeItem(STORAGE_KEY_PREFIX + 'audit_logs');
+    localStorage.removeItem(STORAGE_KEY_PREFIX + 'merchants');
+    localStorage.setItem(STORAGE_CLEANUP_KEY, 'true');
+  }
+} catch {
+  // ignore
+}
 
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_PREFIX + key);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        // filter out legacy mock IDs
+        const cleaned = parsed.filter(item => {
+          if (!item || typeof item !== 'object') return true;
+          const id = item.id || '';
+          if (id === 'ord-101' || id === 'ord-102' || id === 'ord-103' || id === 'ord-104') return false;
+          if (id === 'app-01' || id === 'app-02' || id === 'app-03') return false;
+          if (id === 'job-pk-101' || id === 'job-del-103' || id === 'job-pk-105') return false;
+          if (id === 'stl-2026-w42-01' || id === 'tkt-01') return false;
+          if (id === 'aud-001' || id === 'aud-002' || id === 'aud-003') return false;
+          if (id === 'm-zag-01' || id === 'm-zag-02' || id === 'm-man-01') return false;
+          return true;
+        });
+        return cleaned as unknown as T;
+      }
+      return parsed;
+    }
   } catch {
     // fallback
   }
@@ -209,7 +245,10 @@ export const OperationsProvider: React.FC<{ children: ReactNode }> = ({ children
 
   // Sync state changes to storage
   useEffect(() => saveToStorage('current_user', currentUser), [currentUser]);
-  useEffect(() => saveToStorage('merchants', merchants), [merchants]);
+  useEffect(() => {
+    saveToStorage('merchants', merchants);
+    window.dispatchEvent(new CustomEvent('ala_el_saree_ops_merchants_updated'));
+  }, [merchants]);
   useEffect(() => saveToStorage('applications', applications), [applications]);
   useEffect(() => saveToStorage('orders', orders), [orders]);
   useEffect(() => saveToStorage('delivery_jobs', deliveryJobs), [deliveryJobs]);
@@ -219,6 +258,7 @@ export const OperationsProvider: React.FC<{ children: ReactNode }> = ({ children
   useEffect(() => saveToStorage('service_zones', serviceZones), [serviceZones]);
   useEffect(() => saveToStorage('audit_logs', auditLogs), [auditLogs]);
   useEffect(() => saveToStorage('support_tickets', supportTickets), [supportTickets]);
+
 
   const syncDataFromBackend = async () => {
     try {
@@ -246,7 +286,18 @@ export const OperationsProvider: React.FC<{ children: ReactNode }> = ({ children
         setMerchants(merchantsRes.value.merchants);
       }
       if (ordersRes.status === 'fulfilled' && ordersRes.value?.orders) {
-        setOrders(ordersRes.value.orders);
+        const rawOps = localStorage.getItem(STORAGE_KEY_PREFIX + 'orders');
+        const localOpsOrders: any[] = rawOps ? JSON.parse(rawOps) : [];
+        const mergedOrders = ordersRes.value.orders.map((bo: any) => {
+          const localMatch = localOpsOrders.find((lo: any) => lo.id === bo.id || lo.orderNumber === bo.orderNumber);
+          return {
+            ...bo,
+            photos: (bo.photos && Array.isArray(bo.photos) && bo.photos.length > 0)
+              ? bo.photos
+              : (localMatch?.photos || [])
+          };
+        });
+        setOrders(mergedOrders);
       }
       if (tasksRes.status === 'fulfilled' && tasksRes.value?.tasks) {
         setDeliveryJobs(tasksRes.value.tasks);
@@ -288,6 +339,62 @@ export const OperationsProvider: React.FC<{ children: ReactNode }> = ({ children
     }
     syncDataFromBackend();
   }, [currentUser.id]);
+
+  // Listen for real-time new applications submitted from landing/register form
+  useEffect(() => {
+    const handleNewApplication = (e: any) => {
+      if (e?.detail) {
+        setApplications(prev => {
+          if (prev.some(a => a.id === e.detail.id)) return prev;
+          return [e.detail, ...prev];
+        });
+      }
+    };
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY_PREFIX + 'applications' && e.newValue) {
+        try {
+          const updated = JSON.parse(e.newValue);
+          setApplications(updated);
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    window.addEventListener('ala_el_saree_new_application', handleNewApplication);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('ala_el_saree_new_application', handleNewApplication);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // Listen for new orders placed from customer app
+  useEffect(() => {
+    const handleNewOrder = (e: any) => {
+      if (e?.detail) {
+        setOrders(prev => {
+          if (prev.some(o => o.id === e.detail.id)) return prev;
+          return [e.detail, ...prev];
+        });
+      }
+    };
+    const handleOrdersStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY_PREFIX + 'orders' && e.newValue) {
+        try {
+          setOrders(JSON.parse(e.newValue));
+        } catch {
+          // ignore
+        }
+      }
+    };
+    window.addEventListener('ala_el_saree_new_order', handleNewOrder);
+    window.addEventListener('storage', handleOrdersStorageChange);
+    return () => {
+      window.removeEventListener('ala_el_saree_new_order', handleNewOrder);
+      window.removeEventListener('storage', handleOrdersStorageChange);
+    };
+  }, []);
 
   const addAuditLog = (
     action: string,
@@ -457,7 +564,10 @@ export const OperationsProvider: React.FC<{ children: ReactNode }> = ({ children
         payoutMethod: 'instapay',
         payoutDetails: `${targetApp.mobile}@instapay`,
         rating: 5.0,
-        totalOrdersFulfilled: 0
+        totalOrdersFulfilled: 0,
+        password: targetApp.password || '',
+        locationLink: targetApp.locationLink || '',
+        coordinates: targetApp.coordinates
       };
       setMerchants(prev => [...prev, newMerchant]);
       addAuditLog(
@@ -795,6 +905,111 @@ export const OperationsProvider: React.FC<{ children: ReactNode }> = ({ children
     );
     addAuditLog('إغلاق واكتمال الطلب', 'order', orderId, 'تم إنهاء دورة حياة الطلب بالكامل');
     api.orders.updateStatus(orderId, 'completed').then(() => syncDataFromBackend()).catch(console.error);
+  };
+
+  const advanceOrderStage = (orderId: string, step: 1 | 2 | 3) => {
+    let nextStatus: OrderLifecycleStatus = 'processing';
+    let noteText = '';
+    if (step === 1) {
+      nextStatus = 'processing';
+      noteText = 'تم استلام الملابس وتأكيد الفحص وبدء دورة الغسيل';
+    } else if (step === 2) {
+      nextStatus = 'ready_for_delivery';
+      noteText = 'اكتملت دورة الغسيل والكي والتعقيم — الملابس مغلفة وجاهزة للتوصيل';
+    } else if (step === 3) {
+      nextStatus = 'completed';
+      noteText = 'تم تسليم الملابس إلى كابتن التوصيل بنجاح';
+    }
+
+    setOrders(prev =>
+      prev.map(ord => {
+        if (ord.id === orderId) {
+          return {
+            ...ord,
+            status: nextStatus,
+            paymentStatus: step === 3 ? 'paid' : ord.paymentStatus,
+            statusHistory: [
+              ...ord.statusHistory,
+              {
+                status: nextStatus,
+                timestamp: new Date().toISOString(),
+                actor: currentUser.name || 'المغسلة',
+                note: noteText
+              }
+            ]
+          };
+        }
+        return ord;
+      })
+    );
+
+    addAuditLog(`تحديث مرحلة الطلب إلى خطوة (${step})`, 'order', orderId, noteText);
+
+    // If step 2, ensure return delivery job is created if needed
+    if (step === 2) {
+      const targetOrder = orders.find(o => o.id === orderId);
+      if (targetOrder && !targetOrder.deliveryJobId) {
+        const newJobId = `job-rt-${Date.now().toString().slice(-4)}`;
+        const returnJob: DeliveryJob = {
+          id: newJobId,
+          jobReference: `JOB-RT-${targetOrder.orderNumber.slice(-8)}`,
+          orderId: targetOrder.id,
+          orderNumber: targetOrder.orderNumber,
+          jobType: 'return_delivery',
+          originName: targetOrder.merchantName,
+          originAddress: `${targetOrder.neighborhood} - مقر المغسلة`,
+          originPhone: '01012345671',
+          destinationName: targetOrder.customerName,
+          destinationAddress: targetOrder.deliveryAddress,
+          destinationPhone: targetOrder.customerPhone,
+          serviceZone: targetOrder.city,
+          scheduledWindow: 'خلال الساعتين القادمتين',
+          status: 'awaiting_assignment',
+          attemptCount: 0,
+          cashToCollectEgp: targetOrder.paymentMethod === 'cash_on_delivery' ? targetOrder.customerTotalPaid : 0,
+          cashCollected: false
+        };
+        setDeliveryJobs(prev => [returnJob, ...prev]);
+      }
+    }
+
+    const apiStatus = step === 1 ? 'processing' : step === 2 ? 'ready_for_delivery' : 'completed';
+    api.orders.updateStatus(orderId, apiStatus).then(() => syncDataFromBackend()).catch(console.error);
+
+    // Also directly update alasaree_orders if matching order exists so Customer App gets it instantly!
+    try {
+      const custOrdersRaw = localStorage.getItem('alasaree_orders');
+      if (custOrdersRaw) {
+        const custOrders: any[] = JSON.parse(custOrdersRaw);
+        const mappedCustStatus =
+          step === 1 ? 'cleaning_in_progress' : step === 2 ? 'ready_for_delivery' : 'delivered';
+        const updatedCust = custOrders.map(co => {
+          if (co.id === orderId || co.referenceNumber === orderId) {
+            return {
+              ...co,
+              status: mappedCustStatus,
+              statusHistory: [
+                ...(co.statusHistory || []),
+                {
+                  status: mappedCustStatus,
+                  timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+                  titleAr: noteText,
+                  titleEn: 'Status updated by partner',
+                  descriptionAr: noteText,
+                  descriptionEn: 'Order stage updated'
+                }
+              ]
+            };
+          }
+          return co;
+        });
+        localStorage.setItem('alasaree_orders', JSON.stringify(updatedCust));
+      }
+    } catch {
+      // ignore
+    }
+
+    window.dispatchEvent(new CustomEvent('ala_el_saree_ops_orders_updated'));
   };
 
   // Dispatch & Delivery
@@ -1325,6 +1540,7 @@ export const OperationsProvider: React.FC<{ children: ReactNode }> = ({ children
         startOrderProcessing,
         markOrderReadyForDelivery,
         completeOrder,
+        advanceOrderStage,
         assignDriverToJob,
         reassignJob,
         driverUpdateJobStatus,

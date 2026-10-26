@@ -13,11 +13,16 @@ import {
   Sparkles,
   ShoppingBag,
   RotateCcw,
-  Check
+  Check,
+  Camera,
+  QrCode,
+  ScanLine
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { OrderStatus } from '../../types';
 import { GARMENTS } from '../../data/mockData';
+import { CustomerBarcodeHandoverModal } from '../common/CustomerBarcodeHandoverModal';
+import { OrderChatModal } from '../common/OrderChatModal';
 
 export const OrderTrackingScreen: React.FC = () => {
   const {
@@ -30,13 +35,24 @@ export const OrderTrackingScreen: React.FC = () => {
     fetchBackendData,
     orders,
     navigateTo,
-    showToast
+    showToast,
+    user
   } = useApp();
 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('غيرت رأيي / تأخر المندوب');
   const [showItemsList, setShowItemsList] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<{
+    pieceIndex?: number;
+    garmentNameAr: string;
+    photoUrl: string;
+    tag?: string;
+    notes?: string;
+  } | null>(null);
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [deliveryConfirmed, setDeliveryConfirmed] = useState(false);
 
   const order = activeTrackingOrder || orders[0];
 
@@ -218,6 +234,98 @@ export const OrderTrackingScreen: React.FC = () => {
           </div>
         </div>
 
+        {/* 3 Main Procedures Live Bar */}
+        {!isCancelled && (
+          <div className="mt-3 pt-3 border-t border-[#E5EEF4]">
+            <div className="flex items-center justify-between text-[11px] font-bold text-[#183247] mb-2">
+              <span>{language === 'ar' ? 'إجراءات المغسلة الحالية:' : 'Laundry Progress:'}</span>
+              <span className="text-[#079FD0]">
+                {['courier_to_deliver', 'delivered', 'completed', 'out_for_delivery'].includes(order.status as any)
+                  ? (language === 'ar' ? 'تم التسليم للمندوب والتوصيل 🚀' : 'Handed to courier')
+                  : ['ready_for_delivery'].includes(order.status as any)
+                  ? (language === 'ar' ? 'اكتمل الغسيل — جاهز للتسليم ✨' : 'Wash completed')
+                  : ['cleaning_in_progress', 'processing', 'at_laundry'].includes(order.status as any)
+                  ? (language === 'ar' ? 'قيد الغسيل والكي 🫧' : 'Washing & Ironing')
+                  : (language === 'ar' ? 'بانتظار وصول واستلام الملابس' : 'Awaiting arrival')}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-1.5 text-center">
+              {/* Step 1: استلام الطلب */}
+              {(() => {
+                const step1Done = ['at_laundry', 'cleaning_in_progress', 'processing', 'ready_for_delivery', 'courier_to_deliver', 'out_for_delivery', 'delivered', 'completed'].includes(order.status as any);
+                const step1Current = ['order_received', 'order_confirmed', 'courier_to_pickup', 'clothes_collected', 'awaiting_laundry_confirmation'].includes(order.status as any);
+                return (
+                  <div className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition ${
+                    step1Done
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs'
+                      : step1Current
+                      ? 'bg-[#EAF8FF] border-[#08BDF4] text-[#079FD0] shadow-2xs'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}>
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                      step1Done ? 'bg-emerald-500 text-white' : step1Current ? 'bg-[#08BDF4] text-white animate-pulse' : 'bg-slate-200 text-slate-500'
+                    }`}>
+                      {step1Done ? <Check className="w-3.5 h-3.5" /> : '1'}
+                    </div>
+                    <span className="text-[10px] font-bold truncate max-w-full">
+                      {language === 'ar' ? '1. استلام الطلب' : '1. Received'}
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* Step 2: غسيل الطلب */}
+              {(() => {
+                const step2Done = ['ready_for_delivery', 'courier_to_deliver', 'out_for_delivery', 'delivered', 'completed'].includes(order.status as any);
+                const step2Current = ['at_laundry', 'cleaning_in_progress', 'processing'].includes(order.status as any);
+                return (
+                  <div className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition ${
+                    step2Done
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs'
+                      : step2Current
+                      ? 'bg-[#EAF8FF] border-[#08BDF4] text-[#079FD0] shadow-2xs'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}>
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                      step2Done ? 'bg-emerald-500 text-white' : step2Current ? 'bg-[#08BDF4] text-white animate-pulse' : 'bg-slate-200 text-slate-500'
+                    }`}>
+                      {step2Done ? <Check className="w-3.5 h-3.5" /> : '2'}
+                    </div>
+                    <span className="text-[10px] font-bold truncate max-w-full">
+                      {language === 'ar' ? '2. غسيل وكوي' : '2. Washing'}
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* Step 3: تسليم إلى المندوب */}
+              {(() => {
+                const step3Done = ['courier_to_deliver', 'out_for_delivery', 'delivered', 'completed'].includes(order.status as any);
+                const step3Current = order.status === 'ready_for_delivery';
+                return (
+                  <div className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition ${
+                    step3Done
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs'
+                      : step3Current
+                      ? 'bg-[#EAF8FF] border-[#08BDF4] text-[#079FD0] shadow-2xs'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}>
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                      step3Done ? 'bg-emerald-500 text-white' : step3Current ? 'bg-[#08BDF4] text-white animate-pulse' : 'bg-slate-200 text-slate-500'
+                    }`}>
+                      {step3Done ? <Check className="w-3.5 h-3.5" /> : '3'}
+                    </div>
+                    <span className="text-[10px] font-bold truncate max-w-full">
+                      {language === 'ar' ? '3. تسليم للمندوب' : '3. Handoff'}
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
         {/* Price Adjustment Approval Banner */}
         {isAwaitingApproval && (
           <div className="mt-3 p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex flex-col gap-3">
@@ -288,7 +396,7 @@ export const OrderTrackingScreen: React.FC = () => {
         )}
       </div>
 
-      {/* 2. Assigned Driver Card */}
+      {/* 2. Assigned Driver Card + Chat with Merchant */}
       {!isCancelled && (
         <div className="p-4 bg-white rounded-3xl border border-[#E5EEF4] mb-4 shadow-2xs">
           <div className="flex items-center justify-between">
@@ -306,15 +414,21 @@ export const OrderTrackingScreen: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <a
-                href="https://wa.me/201012345678"
-                target="_blank"
-                rel="noreferrer"
-                className="w-9 h-9 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-[#18A875] flex items-center justify-center border border-emerald-200 transition cursor-pointer"
-                title={t.whatsappSupport}
+              {/* Chat with Merchant Button */}
+              <button
+                onClick={() => setShowChatModal(true)}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center border transition cursor-pointer relative ${
+                  isAwaitingApproval
+                    ? 'bg-amber-400 text-white border-amber-500 animate-pulse shadow-md'
+                    : 'bg-violet-50 hover:bg-violet-100 text-violet-700 border-violet-200'
+                }`}
+                title={language === 'ar' ? 'محادثة مع المغسلة' : 'Chat with Laundry'}
               >
                 <MessageCircle className="w-4 h-4" />
-              </a>
+                {isAwaitingApproval && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-white animate-ping" />
+                )}
+              </button>
               <a
                 href="tel:+201012345678"
                 className="w-9 h-9 rounded-xl bg-[#EAF8FF] hover:bg-[#08BDF4]/20 text-[#079FD0] flex items-center justify-center border border-[#08BDF4]/30 transition cursor-pointer"
@@ -324,6 +438,33 @@ export const OrderTrackingScreen: React.FC = () => {
               </a>
             </div>
           </div>
+
+          {/* Barcode Delivery Confirmation - only when courier is delivering */}
+          {['courier_to_deliver', 'out_for_delivery'].includes(order.status as string) && !deliveryConfirmed && (
+            <div className="mt-3 pt-3 border-t border-[#E5EEF4]">
+              <button
+                onClick={() => setShowBarcodeModal(true)}
+                className="w-full py-2.5 bg-gradient-to-r from-[#08BDF4] to-[#079FD0] text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md hover:opacity-90 active:scale-95 transition cursor-pointer"
+              >
+                <ScanLine className="w-4 h-4" />
+                <span>{language === 'ar' ? 'تأكيد استلام طلبك بالباركود' : 'Confirm Delivery via Barcode'}</span>
+                <QrCode className="w-4 h-4 opacity-70" />
+              </button>
+              <p className="text-[10px] text-[#718596] text-center mt-1.5">
+                {language === 'ar' ? 'امسح الباركود الموجود على كيس الملابس لتأكيد الاستلام' : 'Scan the barcode on the garment bag to confirm receipt'}
+              </p>
+            </div>
+          )}
+
+          {/* Delivery Confirmed State */}
+          {deliveryConfirmed && (
+            <div className="mt-3 pt-3 border-t border-[#E5EEF4] flex items-center gap-2 justify-center">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              <span className="text-xs font-black text-emerald-700">
+                {language === 'ar' ? 'تم تأكيد استلام الطلب بنجاح ✓' : 'Delivery confirmed successfully ✓'}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -392,6 +533,47 @@ export const OrderTrackingScreen: React.FC = () => {
         </div>
       </div>
 
+      {/* Documented Garment Photos Card */}
+      {order.photos && order.photos.length > 0 && (
+        <div className="p-4 bg-white rounded-3xl border border-[#E5EEF4] mb-4 shadow-2xs">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Camera className="w-4 h-4 text-[#08BDF4]" />
+              <span className="text-xs font-bold text-[#183247]">
+                {language === 'ar' ? `صور توثيق الملابس (${order.photos.length} قطع)` : `Documented Photos (${order.photos.length})`}
+              </span>
+            </div>
+            <span className="text-[10px] text-[#079FD0] font-semibold">
+              {language === 'ar' ? 'اضغط لتكبير أي صورة' : 'Tap to enlarge'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {order.photos.map((p, idx) => (
+              <div
+                key={p.pieceIndex || idx}
+                onClick={() => setSelectedPhoto(p)}
+                className="aspect-square rounded-2xl overflow-hidden border border-[#E5EEF4] bg-slate-50 relative shadow-2xs cursor-pointer group hover:border-[#08BDF4] transition"
+              >
+                <img
+                  src={p.photoUrl || (p as any).photo_url}
+                  alt={p.garmentNameAr}
+                  className="w-full h-full object-cover group-hover:scale-105 transition"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-black/65 backdrop-blur-xs text-white text-[9px] font-bold p-1 truncate text-center">
+                  {p.garmentNameAr}
+                </div>
+                {p.tag && (
+                  <span className="absolute top-1 right-1 bg-emerald-600 text-white text-[8px] font-bold px-1 rounded-sm shadow-xs">
+                    {p.tag}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 4. Order Items Accordion */}
       <div className="p-4 bg-white rounded-3xl border border-[#E5EEF4] mb-4 shadow-2xs">
         <button
@@ -438,9 +620,9 @@ export const OrderTrackingScreen: React.FC = () => {
                   {language === 'ar' ? 'صور القطع الموثقة للطلب:' : 'Documented Garment Photos:'}
                 </span>
                 <div className="grid grid-cols-3 gap-2">
-                  {order.photos.map(p => (
+                  {order.photos.map((p, idx) => (
                     <div
-                      key={p.id}
+                      key={p.pieceIndex || idx}
                       className="aspect-square rounded-xl overflow-hidden border border-[#E5EEF4] bg-slate-50 relative shadow-2xs"
                     >
                       <img
@@ -471,6 +653,38 @@ export const OrderTrackingScreen: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* Barcode Handover Modal */}
+      <CustomerBarcodeHandoverModal
+        isOpen={showBarcodeModal}
+        onClose={() => setShowBarcodeModal(false)}
+        orderNumber={order.referenceNumber || order.id}
+        orderId={order.id}
+        expectedBarcode={`AS-${(order.referenceNumber || order.id).slice(-6).toUpperCase()}`}
+        onConfirmSuccess={() => {
+          setDeliveryConfirmed(true);
+          setShowBarcodeModal(false);
+          showToast(language === 'ar' ? '✅ تم تأكيد الاستلام بنجاح!' : '✅ Delivery confirmed successfully!');
+        }}
+      />
+
+      {/* Order Chat Modal (Customer ↔ Merchant) */}
+      <OrderChatModal
+        isOpen={showChatModal}
+        onClose={() => setShowChatModal(false)}
+        orderId={order.id}
+        orderNumber={order.referenceNumber || order.id}
+        customerName={user?.name || 'العميل'}
+        customerPhone={user?.phone || ''}
+        merchantName={(order as any).partnerName || 'المغسلة المعتمدة'}
+        currentUserRole="customer"
+        currentUserName={user?.name || 'العميل'}
+        discrepancy={(order as any).discrepancy || null}
+        onApprovePriceAdjustment={(approved) => {
+          approvePriceAdjustment(order.id, approved);
+          setShowChatModal(false);
+        }}
+      />
 
       {/* Cancel Order Modal */}
       {showCancelModal && (
@@ -516,6 +730,62 @@ export const OrderTrackingScreen: React.FC = () => {
               >
                 تأكيد الإلغاء
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Lightbox Modal */}
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200 text-right"
+            dir={language === 'ar' ? 'rtl' : 'ltr'}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-[#08BDF4]" />
+                <h3 className="font-bold text-xs text-[#183247]">
+                  {selectedPhoto.garmentNameAr} {selectedPhoto.pieceIndex ? `(#${selectedPhoto.pieceIndex})` : ''}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedPhoto(null)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-slate-950 p-2 flex items-center justify-center max-h-[55vh] overflow-hidden">
+              <img
+                src={selectedPhoto.photoUrl || (selectedPhoto as any).photo_url}
+                alt={selectedPhoto.garmentNameAr}
+                className="max-h-[50vh] w-auto max-w-full object-contain rounded-xl"
+              />
+            </div>
+
+            <div className="p-3.5 bg-slate-50 flex items-center justify-between text-xs">
+              <div>
+                <span className="text-slate-500 block text-[10px]">
+                  {language === 'ar' ? 'حالة توثيق القطعة:' : 'Condition:'}
+                </span>
+                <span className="font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full inline-block mt-0.5 text-[11px]">
+                  {selectedPhoto.tag || (language === 'ar' ? 'سليمة تماماً' : 'Good')}
+                </span>
+              </div>
+              {selectedPhoto.notes && (
+                <div className="text-left">
+                  <span className="text-slate-500 block text-[10px]">
+                    {language === 'ar' ? 'ملاحظات:' : 'Notes:'}
+                  </span>
+                  <span className="font-semibold text-slate-700 text-[11px]">{selectedPhoto.notes}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

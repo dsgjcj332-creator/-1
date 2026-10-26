@@ -12,13 +12,11 @@ import {
   Info
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { GARMENT_CATEGORIES, GARMENTS } from '../../data/mockData';
+import { GARMENT_CATEGORIES, GARMENTS, DEFAULT_STAIN_OPTIONS } from '../../data/mockData';
 import {
   GarmentItem,
   ServiceType,
-  FragranceType,
-  StarchLevel,
-  PackagingType,
+  StainTreatmentOption,
   OrderItemCustomization
 } from '../../types';
 
@@ -33,38 +31,141 @@ export const GarmentSelectScreen: React.FC = () => {
     totalItemsCount,
     cartSubtotal,
     navigateTo,
-    showToast
+    showToast,
+    selectedPartner,
+    getGarmentPrice
   } = useApp();
 
   const [activeCategoryId, setActiveCategoryId] = useState<string>('top');
+
+  // Load custom stains configured by this merchant
+  const getMerchantStains = (): StainTreatmentOption[] => {
+    try {
+      if (selectedPartner?.id) {
+        const raw = localStorage.getItem(`ala_el_saree_merchant_stains_${selectedPartner.id}`);
+        if (raw) {
+          const list: StainTreatmentOption[] = JSON.parse(raw);
+          return list.filter(s => s.isAvailable !== false);
+        }
+      }
+      const activeRaw = localStorage.getItem('ala_el_saree_merchant_stains_active');
+      if (activeRaw) {
+        const list: StainTreatmentOption[] = JSON.parse(activeRaw);
+        return list.filter(s => s.isAvailable !== false);
+      }
+    } catch {}
+    return DEFAULT_STAIN_OPTIONS.filter(s => s.isAvailable !== false);
+  };
+
+  // Load offered services configured by this merchant
+  const getMerchantOfferedServices = (): Record<string, boolean> => {
+    try {
+      if (selectedPartner?.id) {
+        const raw = localStorage.getItem(`ala_el_saree_merchant_services_${selectedPartner.id}`);
+        if (raw) return JSON.parse(raw);
+      }
+      const activeRaw = localStorage.getItem('ala_el_saree_merchant_services_active');
+      if (activeRaw) return JSON.parse(activeRaw);
+    } catch {}
+    return {
+      wash_iron: true,
+      wash_only: true,
+      iron_only: true,
+      dry_clean: true,
+      bedding: true,
+      shoes: true
+    };
+  };
+
+  const [availableStains, setAvailableStains] = useState<StainTreatmentOption[]>(() => getMerchantStains());
+  const [offeredServices, setOfferedServices] = useState<Record<string, boolean>>(() => getMerchantOfferedServices());
+
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      setAvailableStains(getMerchantStains());
+      setOfferedServices(getMerchantOfferedServices());
+    };
+    window.addEventListener('ala_el_saree_merchant_settings_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('ala_el_saree_merchant_settings_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, [selectedPartner?.id]);
+
+  const ALL_SERVICES: { type: ServiceType; label: string }[] = [
+    { type: 'wash_iron', label: t.service_wash_iron },
+    { type: 'wash_only', label: t.service_wash_only },
+    { type: 'iron_only', label: t.service_iron_only },
+    { type: 'dry_clean', label: t.service_dry_clean }
+  ];
+
+  // Only display services that the merchant enabled in the dashboard
+  const availableServices = ALL_SERVICES.filter(s => offeredServices[s.type] !== false);
+
+  // Available categories based on merchant customization (e.g., bedding / shoes toggles)
+  const availableCategories = GARMENT_CATEGORIES.filter(c => {
+    if (c.id === 'bedding' && offeredServices.bedding === false) return false;
+    if (c.id === 'shoes_delicates' && offeredServices.shoes === false) return false;
+    return true;
+  });
+
+  const activeCategory =
+    availableCategories.find(c => c.id === activeCategoryId) || availableCategories[0] || GARMENT_CATEGORIES[0];
+
+  const categoryGarments = GARMENTS.filter(g => {
+    if (g.categoryId !== activeCategory.id) return false;
+    if (g.categoryId === 'bedding' && offeredServices.bedding === false) return false;
+    if (g.categoryId === 'shoes_delicates' && offeredServices.shoes === false) return false;
+    return true;
+  });
 
   // Modal / Bottom Sheet for customizing a specific garment
   const [customizingGarment, setCustomizingGarment] = useState<GarmentItem | null>(null);
   const [modalCustomization, setModalCustomization] = useState<OrderItemCustomization>({
     serviceType: 'wash_iron',
-    fragrance: 'breeze',
-    starch: 'light',
-    packaging: 'hanger',
+    stains: [],
+    stainCost: 0,
     notes: ''
   });
   const [modalQty, setModalQty] = useState(1);
 
-  const activeCategory =
-    GARMENT_CATEGORIES.find(c => c.id === activeCategoryId) || GARMENT_CATEGORIES[0];
-
-  const categoryGarments = GARMENTS.filter(g => g.categoryId === activeCategoryId);
-
   const openCustomizer = (garment: GarmentItem) => {
     setCustomizingGarment(garment);
     const existing = cartItems.find(i => i.garmentId === garment.id);
+    const defaultType: ServiceType = availableServices.length > 0 ? availableServices[0].type : 'wash_iron';
+    const chosenType = existing && offeredServices[existing.customization.serviceType] !== false
+      ? existing.customization.serviceType
+      : defaultType;
+
     setModalCustomization({
-      serviceType: existing ? existing.customization.serviceType : 'wash_iron',
-      fragrance: existing ? existing.customization.fragrance : 'breeze',
-      starch: existing ? existing.customization.starch : 'light',
-      packaging: existing ? existing.customization.packaging : 'hanger',
+      serviceType: chosenType,
+      stains: existing?.customization.stains ? [...existing.customization.stains] : [],
+      stainCost: existing?.customization.stainCost || 0,
       notes: existing ? existing.customization.notes || '' : ''
     });
     setModalQty(1);
+  };
+
+  const handleToggleStain = (stain: StainTreatmentOption) => {
+    setModalCustomization(prev => {
+      const currentStains = prev.stains || [];
+      const isSelected = currentStains.includes(stain.id);
+      const nextStains = isSelected
+        ? currentStains.filter(id => id !== stain.id)
+        : [...currentStains, stain.id];
+
+      const newCost = nextStains.reduce((sum, sId) => {
+        const found = availableStains.find(s => s.id === sId);
+        return sum + (found?.price || 0);
+      }, 0);
+
+      return {
+        ...prev,
+        stains: nextStains,
+        stainCost: newCost
+      };
+    });
   };
 
   const handleSaveCustomization = () => {
@@ -99,10 +200,33 @@ export const GarmentSelectScreen: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col relative pb-28">
+      {/* Selected Partner Header Banner */}
+      {selectedPartner && (
+        <div className="bg-[#EAF8FF] border-b border-[#08BDF4]/30 px-4 py-2.5 flex items-center justify-between text-xs shadow-2xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-base">🧺</span>
+            <div className="min-w-0">
+              <span className="text-[10px] text-[#718596] block">
+                {language === 'ar' ? 'المغسلة المعتمدة:' : 'Selected Laundry:'}
+              </span>
+              <span className="font-black text-[#183247] truncate block">
+                {language === 'ar' ? selectedPartner.nameAr : selectedPartner.nameEn}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => navigateTo('partner_select')}
+            className="text-[11px] font-bold text-[#079FD0] bg-white px-2.5 py-1 rounded-lg border border-[#08BDF4]/30 hover:bg-[#08BDF4]/10 transition cursor-pointer"
+          >
+            {language === 'ar' ? 'تغيير' : 'Change'}
+          </button>
+        </div>
+      )}
+
       {/* 1. Garment Category Horizontal Pills (Sticky Top) */}
       <div className="bg-white/95 backdrop-blur-sm px-4 py-3 border-b border-[#E5EEF4] sticky top-0 z-20 flex items-center gap-2 overflow-x-auto no-scrollbar shadow-2xs">
-        {GARMENT_CATEGORIES.map(cat => {
-          const isSelected = activeCategoryId === cat.id;
+        {availableCategories.map(cat => {
+          const isSelected = activeCategory.id === cat.id;
           return (
             <button
               key={cat.id}
@@ -133,12 +257,10 @@ export const GarmentSelectScreen: React.FC = () => {
         <div className="flex flex-col gap-2.5">
           {categoryGarments.map(garment => {
             const count = getCartItemCount(garment.id);
-            const minPrice = Math.min(
-              garment.basePrices.wash_iron,
-              garment.basePrices.wash_only,
-              garment.basePrices.iron_only,
-              garment.basePrices.dry_clean
-            );
+            const activePrices = availableServices.map(s => getGarmentPrice(garment.id, s.type));
+            const minPrice = activePrices.length > 0
+              ? Math.min(...activePrices)
+              : getGarmentPrice(garment.id, 'wash_iron');
             const isSelected = count > 0;
 
             return (
@@ -243,7 +365,7 @@ export const GarmentSelectScreen: React.FC = () => {
                     </h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="text-xs font-bold text-[#079FD0]">
-                        {customizingGarment.basePrices[modalCustomization.serviceType]} {t.currency}
+                        {getGarmentPrice(customizingGarment.id, modalCustomization.serviceType) + (modalCustomization.stainCost || 0)} {t.currency}
                       </span>
                       <span className="text-[10px] text-[#718596]">/ {language === 'ar' ? 'للقطعة' : 'per piece'}</span>
                     </div>
@@ -268,130 +390,82 @@ export const GarmentSelectScreen: React.FC = () => {
                   {language === 'ar' ? 'نوع الخدمة المطلوبة:' : 'Service Type:'}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { type: 'wash_iron', label: t.service_wash_iron },
-                    { type: 'wash_only', label: t.service_wash_only },
-                    { type: 'iron_only', label: t.service_iron_only },
-                    { type: 'dry_clean', label: t.service_dry_clean }
-                  ].map(s => (
-                    <button
-                      key={s.type}
-                      type="button"
-                      onClick={() =>
-                        setModalCustomization(prev => ({
-                          ...prev,
-                          serviceType: s.type as ServiceType
-                        }))
-                      }
-                      className={`py-2 px-3 rounded-xl border text-xs font-bold text-start flex items-center justify-between transition cursor-pointer ${
-                        modalCustomization.serviceType === s.type
-                          ? 'border-[#08BDF4] bg-[#EAF8FF] text-[#079FD0] shadow-xs'
-                          : 'border-[#E5EEF4] text-[#718596] hover:bg-slate-50'
-                      }`}
-                    >
-                      <span>{s.label}</span>
-                      <span className="text-[11px] font-black">
-                        {customizingGarment.basePrices[s.type as ServiceType]} {t.currency}
-                      </span>
-                    </button>
-                  ))}
+                  {availableServices.length > 0 ? (
+                    availableServices.map(s => (
+                      <button
+                        key={s.type}
+                        type="button"
+                        onClick={() =>
+                          setModalCustomization(prev => ({
+                            ...prev,
+                            serviceType: s.type
+                          }))
+                        }
+                        className={`py-2 px-3 rounded-xl border text-xs font-bold text-start flex items-center justify-between transition cursor-pointer ${
+                          modalCustomization.serviceType === s.type
+                            ? 'border-[#08BDF4] bg-[#EAF8FF] text-[#079FD0] shadow-xs'
+                            : 'border-[#E5EEF4] text-[#718596] hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>{s.label}</span>
+                        <span className="text-[11px] font-black">
+                          {getGarmentPrice(customizingGarment.id, s.type)} {t.currency}
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="col-span-2 p-3 bg-amber-50 text-amber-800 text-xs rounded-xl border border-amber-200">
+                      {language === 'ar' ? 'الخدمات معلقة مؤقتاً في هذا الفرع' : 'Services temporarily paused'}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Fragrance Choice */}
+              {/* Stain Treatment Choice Cards (Replaces fragrance, starch, packaging as requested) */}
               <div>
-                <label className="block text-xs font-bold text-[#183247] mb-2">
-                  {language === 'ar' ? 'نوع المعطر الفاخر:' : 'Fragrance Preference:'}
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-[#183247]">
+                    {language === 'ar' ? 'معالجة بقع متخصصة (اختياري):' : 'Special Stain Treatment (Optional):'}
+                  </label>
+                  <span className="text-[10px] text-[#718596]">
+                    {language === 'ar' ? 'حدد أي بقع بالقطعة لإزالتها' : 'Select any stains to treat'}
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'breeze', label: t.fragrance_breeze },
-                    { id: 'oud', label: t.fragrance_oud },
-                    { id: 'lavender', label: t.fragrance_lavender },
-                    { id: 'none', label: t.fragrance_none }
-                  ].map(f => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() =>
-                        setModalCustomization(prev => ({
-                          ...prev,
-                          fragrance: f.id as FragranceType
-                        }))
-                      }
-                      className={`py-2 px-3 rounded-xl border text-xs font-medium text-start transition cursor-pointer ${
-                        modalCustomization.fragrance === f.id
-                          ? 'border-[#08BDF4] bg-[#EAF8FF] text-[#079FD0] font-bold shadow-xs'
-                          : 'border-[#E5EEF4] text-[#718596] hover:bg-slate-50'
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                  {availableStains.map(stain => {
+                    const isSelected = (modalCustomization.stains || []).includes(stain.id);
+                    return (
+                      <button
+                        key={stain.id}
+                        type="button"
+                        onClick={() => handleToggleStain(stain)}
+                        className={`p-2.5 rounded-xl border text-xs text-start transition cursor-pointer flex items-center justify-between gap-1.5 ${
+                          isSelected
+                            ? 'border-[#08BDF4] bg-[#EAF8FF] text-[#079FD0] shadow-xs ring-1 ring-[#08BDF4]/30'
+                            : 'border-[#E5EEF4] text-[#475569] hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-base shrink-0">{stain.icon || '🧼'}</span>
+                          <div className="min-w-0">
+                            <div className="font-bold text-[11px] truncate leading-tight">
+                              {language === 'ar' ? stain.nameAr : stain.nameEn}
+                            </div>
+                            <div className={`text-[10px] font-black mt-0.5 ${isSelected ? 'text-[#079FD0]' : 'text-emerald-600'}`}>
+                              +{stain.price} {t.currency}
+                            </div>
+                          </div>
+                        </div>
 
-              {/* Starch Level */}
-              <div>
-                <label className="block text-xs font-bold text-[#183247] mb-2">
-                  {language === 'ar' ? 'درجة النشا (Starch):' : 'Starch Level:'}
-                </label>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {[
-                    { id: 'none', label: 'بدون' },
-                    { id: 'light', label: 'خفيف' },
-                    { id: 'medium', label: 'متوسط' },
-                    { id: 'high', label: 'عالي' }
-                  ].map(st => (
-                    <button
-                      key={st.id}
-                      type="button"
-                      onClick={() =>
-                        setModalCustomization(prev => ({
-                          ...prev,
-                          starch: st.id as StarchLevel
-                        }))
-                      }
-                      className={`py-2 px-1 rounded-xl border text-xs font-bold text-center transition cursor-pointer ${
-                        modalCustomization.starch === st.id
-                          ? 'border-[#08BDF4] bg-[#EAF8FF] text-[#079FD0] shadow-xs'
-                          : 'border-[#E5EEF4] text-[#718596] hover:bg-slate-50'
-                      }`}
-                    >
-                      {st.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Packaging */}
-              <div>
-                <label className="block text-xs font-bold text-[#183247] mb-2">
-                  {language === 'ar' ? 'طريقة الاستلام والتغليف:' : 'Packaging:'}
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'hanger', label: t.packaging_hanger },
-                    { id: 'folded', label: t.packaging_folded }
-                  ].map(p => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() =>
-                        setModalCustomization(prev => ({
-                          ...prev,
-                          packaging: p.id as PackagingType
-                        }))
-                      }
-                      className={`p-2.5 rounded-xl border text-[11px] font-semibold text-start transition cursor-pointer ${
-                        modalCustomization.packaging === p.id
-                          ? 'border-[#08BDF4] bg-[#EAF8FF] text-[#079FD0] shadow-xs'
-                          : 'border-[#E5EEF4] text-[#718596] hover:bg-slate-50'
-                      }`}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
+                        <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 ${
+                          isSelected ? 'bg-[#08BDF4] border-[#08BDF4] text-white' : 'border-slate-300'
+                        }`}>
+                          {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -425,50 +499,66 @@ export const GarmentSelectScreen: React.FC = () => {
               style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 14px)' }}
             >
               {/* Quantity Stepper in modal */}
-              <div className="flex items-center justify-between px-3 py-2 bg-[#F4FBFF] rounded-xl border border-[#E5EEF4]">
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-[#183247]">
-                    {language === 'ar' ? 'الكمية المطلوبة:' : 'Quantity:'}
-                  </span>
-                  <span className="text-[10px] text-[#718596]">
-                    {modalQty} × {customizingGarment.basePrices[modalCustomization.serviceType]} = {customizingGarment.basePrices[modalCustomization.serviceType] * modalQty} {t.currency}
-                  </span>
-                </div>
+              {(() => {
+                const basePiecePrice = getGarmentPrice(customizingGarment.id, modalCustomization.serviceType);
+                const stainExtra = modalCustomization.stainCost || 0;
+                const singlePieceTotal = basePiecePrice + stainExtra;
+                const totalAmount = singlePieceTotal * modalQty;
 
-                <div className="flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setModalQty(q => Math.max(1, q - 1))}
-                    className="w-7 h-7 rounded-lg bg-white border border-[#E5EEF4] flex items-center justify-center text-slate-700 cursor-pointer active:scale-95 shadow-2xs"
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="text-sm font-black text-[#183247] min-w-5 text-center">{modalQty}</span>
-                  <button
-                    type="button"
-                    onClick={() => setModalQty(q => q + 1)}
-                    className="w-7 h-7 rounded-lg bg-[#08BDF4] text-white flex items-center justify-center cursor-pointer active:scale-95 shadow-2xs"
-                    aria-label="Increase quantity"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
+                return (
+                  <>
+                    <div className="flex items-center justify-between px-3 py-2 bg-[#F4FBFF] rounded-xl border border-[#E5EEF4]">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#183247]">
+                          {language === 'ar' ? 'الكمية المطلوبة:' : 'Quantity:'}
+                        </span>
+                        <span className="text-[10px] text-[#718596]">
+                          {modalQty} × {singlePieceTotal} = {totalAmount} {t.currency}
+                          {stainExtra > 0 && (
+                            <span className="text-emerald-600 font-bold mr-1">
+                              (يشمل +{stainExtra * modalQty} {t.currency} إزالة بقع)
+                            </span>
+                          )}
+                        </span>
+                      </div>
 
-              {/* Confirm button */}
-              <button
-                type="button"
-                onClick={handleSaveCustomization}
-                className="w-full h-11 rounded-xl bg-[#08BDF4] hover:bg-[#079FD0] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition cursor-pointer active:scale-98"
-              >
-                <span>
-                  {language === 'ar'
-                    ? `إضافة للسلة (${customizingGarment.basePrices[modalCustomization.serviceType] * modalQty} ${t.currency})`
-                    : `Add to Cart (${customizingGarment.basePrices[modalCustomization.serviceType] * modalQty} ${t.currency})`}
-                </span>
-                <Check className="w-4 h-4" />
-              </button>
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setModalQty(q => Math.max(1, q - 1))}
+                          className="w-7 h-7 rounded-lg bg-white border border-[#E5EEF4] flex items-center justify-center text-slate-700 cursor-pointer active:scale-95 shadow-2xs"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-sm font-black text-[#183247] min-w-5 text-center">{modalQty}</span>
+                        <button
+                          type="button"
+                          onClick={() => setModalQty(q => q + 1)}
+                          className="w-7 h-7 rounded-lg bg-[#08BDF4] text-white flex items-center justify-center cursor-pointer active:scale-95 shadow-2xs"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirm button */}
+                    <button
+                      type="button"
+                      onClick={handleSaveCustomization}
+                      className="w-full h-11 rounded-xl bg-[#08BDF4] hover:bg-[#079FD0] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition cursor-pointer active:scale-98"
+                    >
+                      <span>
+                        {language === 'ar'
+                          ? `إضافة للسلة (${totalAmount} ${t.currency})`
+                          : `Add to Cart (${totalAmount} ${t.currency})`}
+                      </span>
+                      <Check className="w-4 h-4" />
+                    </button>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>

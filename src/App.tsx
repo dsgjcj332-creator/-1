@@ -4,6 +4,8 @@ import { MobileShell } from './components/layout/MobileShell';
 import { CorporateLandingPage } from './landing/CorporateLandingPage';
 import { AppDownloadPage } from './landing/components/AppDownloadPage';
 import { RegisterPage } from './landing/RegisterPage';
+import { MerchantPortalApp } from './merchant/MerchantPortalApp';
+import { OperationsApp } from './operations/OperationsApp';
 
 
 // Customer Screens
@@ -125,22 +127,49 @@ export default function App() {
     return () => window.removeEventListener('popstate', handleUrlChange);
   }, []);
 
-  const switchToRegister = () => setCurrentView('register');
-  const switchToDownload = () => setCurrentView('download');
-  const switchToApp = () => setCurrentView('app');
-  const switchToMerchant = () => setCurrentView('merchant');
-  const switchToOperations = () => setCurrentView('operations');
-  const switchToLanding = () => setCurrentView('landing');
+  const switchToRegister = () => {
+    setCurrentView('register');
+    window.history.pushState({}, '', '?view=register');
+  };
+  const switchToDownload = () => {
+    setCurrentView('app'); // Directly enter app
+    window.history.pushState({}, '', '?view=app');
+  };
+  const switchToApp = () => {
+    setCurrentView('app');
+    window.history.pushState({}, '', '?view=app');
+  };
+  const switchToMerchant = () => {
+    setCurrentView('merchant');
+    window.history.pushState({}, '', '?view=merchant');
+  };
+  const switchToOperations = () => {
+    setCurrentView('operations');
+    window.history.pushState({}, '', '?view=operations');
+  };
+  const switchToLanding = () => {
+    setCurrentView('landing');
+    window.history.pushState({}, '', window.location.pathname);
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       <div className="flex-1 flex flex-col">
         {currentView === 'register' ? (
-          <RegisterPage onBackToLanding={switchToLanding} />
+          <RegisterPage
+            onBackToLanding={switchToLanding}
+            onLoginMerchant={switchToMerchant}
+            onLoginAdmin={switchToOperations}
+            onOpenCustomerApp={switchToApp}
+          />
         ) : currentView === 'landing' ? (
-          <CorporateLandingPage onOpenAppDownload={switchToDownload} onOpenRegister={switchToRegister} />
+          <CorporateLandingPage onOpenAppDownload={switchToApp} onOpenRegister={switchToRegister} />
         ) : currentView === 'download' ? (
-          <AppDownloadPage onBackToLanding={switchToLanding} />
+          <AppProvider>
+            <MobileShell onBackToLanding={switchToLanding}>
+              <MainNavigator />
+            </MobileShell>
+          </AppProvider>
         ) : currentView === 'app' ? (
           <AppProvider>
             <MobileShell onBackToLanding={switchToLanding}>
@@ -148,15 +177,9 @@ export default function App() {
             </MobileShell>
           </AppProvider>
         ) : currentView === 'merchant' ? (
-          <div className="flex-1 items-center justify-center bg-slate-100">
-            <p className="text-[#183247] text-lg">بوابة المغسلة - Merchant Portal</p>
-            <p className="text-xs text-[#718596] mt-2">تشغيل منفصل على المنفذ 5000</p>
-          </div>
+          <MerchantPortalApp onBackToLanding={switchToLanding} />
         ) : (
-          <div className="flex-1 items-center justify-center bg-slate-100">
-            <p className="text-[#183247] text-lg">العمليات المركزية - Operations</p>
-            <p className="text-xs text-[#718596] mt-2">تشغيل منفصل على المنفذ 3000</p>
-          </div>
+          <OperationsApp onBackToLanding={switchToLanding} />
         )}
       </div>
     </div>

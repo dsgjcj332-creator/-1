@@ -21,8 +21,12 @@ import {
   RotateCw,
   Wind,
   Flame,
-  Package
+  Package,
+  Camera,
+  X,
+  MessageCircle
 } from 'lucide-react';
+import { OrderChatModal } from '../../components/common/OrderChatModal';
 
 interface MerchantQueueViewProps {
   onOpenIntake: (order: LaundryOrder) => void;
@@ -42,6 +46,7 @@ export const MerchantQueueView: React.FC<MerchantQueueViewProps> = ({
     startOrderProcessing,
     markOrderReadyForDelivery,
     completeOrder,
+    advanceOrderStage,
     language
   } = useOperations();
 
@@ -51,6 +56,24 @@ export const MerchantQueueView: React.FC<MerchantQueueViewProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [rejectModalOrder, setRejectModalOrder] = useState<LaundryOrder | null>(null);
   const [rejectReason, setRejectReason] = useState<string>('');
+  const [selectedPhoto, setSelectedPhoto] = useState<{
+    pieceIndex?: number;
+    garmentNameAr: string;
+    photoUrl: string;
+    tag?: string;
+    notes?: string;
+  } | null>(null);
+  const [chatOrder, setChatOrder] = useState<LaundryOrder | null>(null);
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (orderId: string) => {
+    setExpandedOrders(prev => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  };
 
   // Status mapping badge helper
   const getStatusBadge = (status: OrderLifecycleStatus) => {
@@ -233,30 +256,75 @@ export const MerchantQueueView: React.FC<MerchantQueueViewProps> = ({
             const totalLaundryAmount = order.laundrySubtotal + (order.adjustmentsTotal || 0);
             const currentWashStage = orderWashStages[order.id] || 'washing_sanitizing';
 
+            // Auto-expand urgent orders that need immediate action
+            const isUrgent = order.status === 'awaiting_laundry_confirmation' || order.status === 'awaiting_customer_approval';
+            const isExpanded = expandedOrders.has(order.id) || isUrgent;
+
             return (
               <div
                 key={order.id}
-                className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs hover:border-slate-300 transition space-y-3"
+                className={`bg-white rounded-2xl border shadow-xs transition ${
+                  isUrgent
+                    ? 'border-amber-300 ring-1 ring-amber-200'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
               >
-                {/* Header Row */}
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-black text-xs sm:text-sm text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg">
-                      {order.orderNumber}
-                    </span>
-                    <span className="text-slate-300">•</span>
-                    <span className="text-[11px] sm:text-xs text-slate-500">
-                      {new Date(order.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })} - {new Date(order.createdAt).toLocaleDateString('ar-EG')}
-                    </span>
+                {/* ── Collapsed Header (always visible) ── */}
+                <div
+                  className="p-4 sm:p-5 cursor-pointer select-none"
+                  onClick={() => toggleExpand(order.id)}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono font-black text-xs sm:text-sm text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg">
+                        {order.orderNumber}
+                      </span>
+                      <span className="text-slate-300">•</span>
+                      <span className="text-[11px] sm:text-xs text-slate-500">
+                        {new Date(order.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })} - {new Date(order.createdAt).toLocaleDateString('ar-EG')}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(order.status)}
+                      {/* Chevron toggle */}
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all ${
+                        isExpanded
+                          ? 'bg-sky-50 border-sky-200 text-sky-600 rotate-180'
+                          : 'bg-slate-50 border-slate-200 text-slate-400'
+                      }`}>
+                        <ChevronLeft className="w-4 h-4 -rotate-90" />
+                      </div>
+                    </div>
                   </div>
 
-                  <div>{getStatusBadge(order.status)}</div>
+                  {/* Quick summary always visible */}
+                  <div className="grid grid-cols-3 gap-2 mt-3 text-xs w-full">
+                    <div>
+                      <div className="text-slate-400 text-[10px] font-bold mb-0.5">العميل</div>
+                      <div className="font-bold text-slate-900 truncate">{order.customerName}</div>
+                      <div className="text-slate-500 text-[10px] truncate">{order.neighborhood} · {order.city}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-slate-400 text-[10px] font-bold mb-0.5">القطع</div>
+                      <div className="font-black text-sky-700 text-sm">{totalItemsCount}</div>
+                      <div className="text-slate-400 text-[10px]">قطعة</div>
+                    </div>
+                    <div className="text-end">
+                      <div className="text-slate-400 text-[10px] font-bold mb-0.5">صافي المغسلة</div>
+                      <div className="font-black text-emerald-700 text-sm">{Math.round(totalLaundryAmount * 0.92)}</div>
+                      <div className="text-slate-400 text-[10px]">ج.م</div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Main Content Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-                  {/* Customer Info */}
-                  <div className="space-y-1">
+                {/* ── Expandable Details ── */}
+                {isExpanded && (
+                  <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-3 border-t border-slate-100 pt-3">
+                    {/* Main Content Grid: Customer, Garments, Pricing */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                      {/* Customer Info */}
+                      <div className="space-y-1">
                     <div className="text-slate-400 text-[10px] sm:text-[11px] font-bold">بيانات العميل والتوصيل</div>
                     <div className="font-bold text-slate-900 text-xs sm:text-sm">{order.customerName}</div>
                     <div className="text-slate-600 font-mono">{order.customerPhone}</div>
@@ -305,6 +373,234 @@ export const MerchantQueueView: React.FC<MerchantQueueViewProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {/* 3-Step Interactive Merchant Procedures: 1. استلام الطلب | 2. غسيل الطلب | 3. تسليم إلى المندوب */}
+                {(() => {
+                  const isStep1Done = [
+                    'received_at_laundry',
+                    'inspection_required',
+                    'processing',
+                    'ready_for_delivery',
+                    'delivery_assigned',
+                    'out_for_delivery',
+                    'delivered',
+                    'completed'
+                  ].includes(order.status);
+
+                  const isStep2Done = [
+                    'ready_for_delivery',
+                    'delivery_assigned',
+                    'out_for_delivery',
+                    'delivered',
+                    'completed'
+                  ].includes(order.status);
+
+                  const isStep3Done = [
+                    'delivery_assigned',
+                    'out_for_delivery',
+                    'delivered',
+                    'completed'
+                  ].includes(order.status);
+
+                  return (
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-sky-600" />
+                          <span>إجراءات تنفيذ الطلب (اضغط على المرحلة لتأكيد إنجازها):</span>
+                        </span>
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                          isStep3Done
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : isStep2Done
+                            ? 'bg-amber-100 text-amber-800'
+                            : isStep1Done
+                            ? 'bg-sky-100 text-sky-800'
+                            : 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {isStep3Done
+                            ? 'اكتمل وتسلم للطيار ✓'
+                            : isStep2Done
+                            ? 'المرحلة 3: تسليم للمندوب'
+                            : isStep1Done
+                            ? 'المرحلة 2: قيد الغسيل والكي'
+                            : 'المرحلة 1: بانتظار الاستلام'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {/* 1. استلام الطلب */}
+                        <button
+                          type="button"
+                          onClick={() => advanceOrderStage(order.id, 1)}
+                          className={`p-3 rounded-xl border text-right transition cursor-pointer flex items-center justify-between ${
+                            isStep1Done
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs'
+                              : 'bg-white border-slate-200 hover:border-sky-300 text-slate-700 hover:bg-sky-50/40'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
+                                isStep1Done ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'
+                              }`}>1</span>
+                              <span className="text-xs font-bold truncate">استلام الطلب</span>
+                            </div>
+                            <span className="text-[10px] text-slate-500 block mt-1">
+                              {isStep1Done ? 'تم الاستلام والفحص ✓' : 'اضغط لتأكيد الاستلام'}
+                            </span>
+                          </div>
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                            isStep1Done ? 'bg-emerald-500 text-white shadow-2xs' : 'border border-slate-300 bg-slate-50'
+                          }`}>
+                            {isStep1Done && <Check className="w-4 h-4" />}
+                          </div>
+                        </button>
+
+                        {/* 2. غسيل الطلب */}
+                        <button
+                          type="button"
+                          onClick={() => advanceOrderStage(order.id, 2)}
+                          disabled={!isStep1Done}
+                          className={`p-3 rounded-xl border text-right transition flex items-center justify-between ${
+                            isStep2Done
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs cursor-pointer'
+                              : isStep1Done
+                              ? 'bg-white border-sky-400 text-sky-900 hover:bg-sky-50/40 cursor-pointer shadow-xs'
+                              : 'bg-slate-100/50 border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
+                                isStep2Done ? 'bg-emerald-500 text-white' : isStep1Done ? 'bg-sky-500 text-white' : 'bg-slate-200 text-slate-400'
+                              }`}>2</span>
+                              <span className="text-xs font-bold truncate">غسيل الطلب</span>
+                            </div>
+                            <span className="text-[10px] text-slate-500 block mt-1">
+                              {isStep2Done ? 'اكتمل الغسيل والكي ✓' : isStep1Done ? 'اضغط لإتمام الغسيل والكي' : 'بعد استلام الملابس'}
+                            </span>
+                          </div>
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                            isStep2Done ? 'bg-emerald-500 text-white shadow-2xs' : 'border border-slate-300 bg-slate-50'
+                          }`}>
+                            {isStep2Done && <Check className="w-4 h-4" />}
+                          </div>
+                        </button>
+
+                        {/* 3. تسليم إلى المندوب */}
+                        <button
+                          type="button"
+                          onClick={() => advanceOrderStage(order.id, 3)}
+                          disabled={!isStep2Done}
+                          className={`p-3 rounded-xl border text-right transition flex items-center justify-between ${
+                            isStep3Done
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs cursor-pointer'
+                              : isStep2Done
+                              ? 'bg-white border-sky-400 text-sky-900 hover:bg-sky-50/40 cursor-pointer shadow-xs'
+                              : 'bg-slate-100/50 border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
+                                isStep3Done ? 'bg-emerald-500 text-white' : isStep2Done ? 'bg-sky-500 text-white' : 'bg-slate-200 text-slate-400'
+                              }`}>3</span>
+                              <span className="text-xs font-bold truncate">تسليم إلى المندوب</span>
+                            </div>
+                            <span className="text-[10px] text-slate-500 block mt-1">
+                              {isStep3Done ? 'تم التسليم للمندوب ✓' : isStep2Done ? 'اضغط لتأكيد التسليم للطيار' : 'بعد اكتمال الغسيل'}
+                            </span>
+                          </div>
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                            isStep3Done ? 'bg-emerald-500 text-white shadow-2xs' : 'border border-slate-300 bg-slate-50'
+                          }`}>
+                            {isStep3Done && <Check className="w-4 h-4" />}
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Customer Documented Garment Photos Gallery */}
+                {(() => {
+                  const orderPhotos: any[] = (order.photos && order.photos.length > 0)
+                    ? order.photos
+                    : (() => {
+                        try {
+                          const rawCust = localStorage.getItem('alasaree_orders');
+                          if (rawCust) {
+                            const list: any[] = JSON.parse(rawCust);
+                            const match = list.find((o: any) => o.id === order.id || o.referenceNumber === order.orderNumber);
+                            if (match?.photos && match.photos.length > 0) return match.photos;
+                          }
+                          const rawOps = localStorage.getItem('ala_el_saree_ops_orders');
+                          if (rawOps) {
+                            const list: any[] = JSON.parse(rawOps);
+                            const match = list.find((o: any) => o.id === order.id || o.orderNumber === order.orderNumber);
+                            if (match?.photos && match.photos.length > 0) return match.photos;
+                          }
+                        } catch {
+                          // ignore
+                        }
+                        return [];
+                      })();
+
+                  if (orderPhotos.length > 0) {
+                    return (
+                      <div className="bg-sky-50/70 p-3 rounded-2xl border border-sky-100 space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-sky-950 flex items-center gap-1.5">
+                            <Camera className="w-3.5 h-3.5 text-sky-600" />
+                            <span>صور توثيق الملابس من العميل ({orderPhotos.length} قطع):</span>
+                          </span>
+                          <span className="text-[10px] text-sky-600 font-semibold">اضغط على أي صورة لتكبيرها وفحصها</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                          {orderPhotos.map((p: any, pIdx: number) => (
+                            <div
+                              key={pIdx}
+                              onClick={() => setSelectedPhoto(p)}
+                              className="shrink-0 group cursor-pointer relative rounded-xl overflow-hidden border border-sky-200 bg-white hover:shadow-md transition"
+                            >
+                              <img
+                                src={p.photoUrl || (p as any).photo_url}
+                                alt={p.garmentNameAr || (p as any).garment_name_ar || 'قطعة ملابس'}
+                                className="w-16 h-16 sm:w-20 sm:h-20 object-cover group-hover:scale-105 transition"
+                              />
+                              <div className="absolute inset-x-0 bottom-0 bg-black/65 backdrop-blur-xs px-1 py-0.5 text-[9px] text-white font-bold truncate text-center">
+                                {p.garmentNameAr || (p as any).garment_name_ar || 'قطعة ملابس'}
+                              </div>
+                              {(p.tag || (p as any).photo_type) && (
+                                <span className="absolute top-1 right-1 bg-emerald-600 text-white text-[8px] font-bold px-1 rounded-sm shadow-xs">
+                                  {p.tag || (p as any).photo_type}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="bg-slate-50/70 p-2.5 rounded-xl border border-slate-200 text-slate-500 text-xs flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Camera className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="text-[11px]">توثيق الصور: لم يرفق العميل صور مسبقة (الفحص يتم بالكاونتر)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onOpenIntake(order)}
+                        className="text-[10px] font-bold text-sky-600 hover:text-sky-700 underline cursor-pointer"
+                      >
+                        تسجيل فحص الكاونتر
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 {/* Wash Stages Interactive Bar for In-Progress Orders */}
                 {order.status === 'processing' && (
@@ -451,9 +747,29 @@ export const MerchantQueueView: React.FC<MerchantQueueViewProps> = ({
                       </button>
                     )}
                   </div>
+
+                  {/* Chat with Customer Button */}
+                  <button
+                    type="button"
+                    onClick={() => setChatOrder(order)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer min-h-[38px] ${
+                      order.status === 'awaiting_customer_approval'
+                        ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-sm animate-pulse'
+                        : 'bg-violet-50 hover:bg-violet-100 text-violet-700 border-violet-200'
+                    }`}
+                    title="محادثة العميل"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>محادثة العميل</span>
+                    {order.status === 'awaiting_customer_approval' && (
+                      <span className="w-2 h-2 bg-red-500 rounded-full inline-block" />
+                    )}
+                  </button>
                 </div>
               </div>
-            );
+            )}
+          </div>
+        );
           })}
         </div>
       )}
@@ -499,6 +815,73 @@ export const MerchantQueueView: React.FC<MerchantQueueViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Photo Lightbox Modal */}
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200 text-right"
+            dir="rtl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-sky-600" />
+                <h3 className="font-bold text-sm text-slate-900">
+                  صورة توثيق العميل: {selectedPhoto.garmentNameAr} {selectedPhoto.pieceIndex ? `(قطعة #${selectedPhoto.pieceIndex})` : ''}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedPhoto(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-slate-950 p-2 flex items-center justify-center max-h-[60vh] overflow-hidden">
+              <img
+                src={selectedPhoto.photoUrl || (selectedPhoto as any).photo_url}
+                alt={selectedPhoto.garmentNameAr || (selectedPhoto as any).garment_name_ar || 'قطعة ملابس'}
+                className="max-h-[55vh] w-auto max-w-full object-contain rounded-xl"
+              />
+            </div>
+
+            <div className="p-4 bg-slate-50 flex items-center justify-between text-xs">
+              <div>
+                <span className="text-slate-500 block text-[11px]">حالة توثيق القطعة:</span>
+                <span className="font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full inline-block mt-0.5">
+                  {selectedPhoto.tag || 'سليمة تماماً'}
+                </span>
+              </div>
+              {selectedPhoto.notes && (
+                <div className="text-left">
+                  <span className="text-slate-500 block text-[11px]">ملاحظات:</span>
+                  <span className="font-semibold text-slate-700">{selectedPhoto.notes}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Order Chat Modal (Merchant ↔ Customer) */}
+      {chatOrder && (
+        <OrderChatModal
+          isOpen={!!chatOrder}
+          onClose={() => setChatOrder(null)}
+          orderId={chatOrder.id}
+          orderNumber={chatOrder.orderNumber}
+          customerName={chatOrder.customerName}
+          customerPhone={chatOrder.customerPhone}
+          merchantName={activeMerchant?.nameAr || 'المغسلة'}
+          currentUserRole="merchant"
+          currentUserName={activeMerchant?.nameAr || 'المغسلة'}
+          discrepancy={chatOrder.discrepancy as any || null}
+        />
       )}
     </div>
   );

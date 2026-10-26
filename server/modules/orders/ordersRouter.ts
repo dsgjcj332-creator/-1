@@ -45,7 +45,7 @@ ordersRouter.get('/', authenticate, async (req: Request, res: Response) => {
 
   const orders = await query(sql, params);
 
-  // Attach items count and items preview
+  // Attach items count, preview, and photos
   for (const ord of orders) {
     const items = await query('SELECT * FROM order_items WHERE order_id = ?', [ord.id]);
     ord.items = items;
@@ -53,6 +53,17 @@ ordersRouter.get('/', authenticate, async (req: Request, res: Response) => {
 
     const discrepancy = await queryOne('SELECT * FROM price_adjustments WHERE order_id = ?', [ord.id]);
     ord.discrepancy = discrepancy;
+
+    const rawPhotos = await query('SELECT * FROM order_item_photos WHERE order_id = ? ORDER BY created_at ASC', [ord.id]);
+    ord.photos = rawPhotos.map((p: any, idx: number) => ({
+      pieceIndex: idx + 1,
+      garmentId: p.order_item_id || undefined,
+      garmentNameAr: p.notes || 'قطعة ملابس',
+      garmentNameEn: 'Garment Piece',
+      photoUrl: p.photo_url,
+      tag: p.photo_type || 'توثيق العميل',
+      notes: p.notes || undefined
+    }));
   }
 
   res.json({ orders });
@@ -82,7 +93,16 @@ ordersRouter.get('/:id', authenticate, async (req: Request, res: Response) => {
   }
 
   const items = await query('SELECT * FROM order_items WHERE order_id = ?', [id]);
-  const photos = await query('SELECT * FROM order_item_photos WHERE order_id = ?', [id]);
+  const rawPhotos = await query('SELECT * FROM order_item_photos WHERE order_id = ? ORDER BY created_at ASC', [id]);
+  const photos = rawPhotos.map((p: any, idx: number) => ({
+    pieceIndex: idx + 1,
+    garmentId: p.order_item_id || undefined,
+    garmentNameAr: p.notes || 'قطعة ملابس',
+    garmentNameEn: 'Garment Piece',
+    photoUrl: p.photo_url,
+    tag: p.photo_type || 'توثيق العميل',
+    notes: p.notes || undefined
+  }));
   const history = await query('SELECT * FROM order_status_history WHERE order_id = ? ORDER BY timestamp ASC', [id]);
   const discrepancy = await queryOne('SELECT * FROM price_adjustments WHERE order_id = ?', [id]);
   const deliveryTasks = await query('SELECT * FROM delivery_tasks WHERE order_id = ?', [id]);
@@ -108,6 +128,7 @@ ordersRouter.post('/', authenticate, async (req: Request, res: Response) => {
     city,
     neighborhood,
     items,
+    photos,
     paymentMethod,
     specialInstructions
   } = req.body;
@@ -183,6 +204,28 @@ ordersRouter.post('/', authenticate, async (req: Request, res: Response) => {
       ]);
     }
 
+    // Insert garment photos if provided
+    if (photos && Array.isArray(photos)) {
+      for (const [pIdx, p] of photos.entries()) {
+        const photoUrl = p.photoUrl || p.photo_url;
+        if (!photoUrl) continue;
+        await execute(`
+          INSERT INTO order_item_photos (
+            id, order_id, order_item_id, uploaded_by_user_id, photo_type, storage_key, photo_url, notes
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          `photo-${orderId}-${pIdx + 1}`,
+          orderId,
+          p.garmentId || null,
+          req.user?.userId || 'cust-anon',
+          p.tag || 'customer_reference',
+          `orders/${orderId}/photo-${pIdx + 1}`,
+          photoUrl,
+          p.garmentNameAr || p.notes || null
+        ]);
+      }
+    }
+
     // Insert history record
     await execute(`
       INSERT INTO order_status_history (id, order_id, from_status, to_status, actor_name, actor_role, note)
@@ -211,7 +254,22 @@ ordersRouter.post('/', authenticate, async (req: Request, res: Response) => {
   });
 
   const createdOrder = await queryOne('SELECT * FROM orders WHERE id = ?', [orderId]);
-  res.status(201).json({ success: true, order: createdOrder });
+  const createdPhotos = await query('SELECT * FROM order_item_photos WHERE order_id = ? ORDER BY created_at ASC', [orderId]);
+  res.status(201).json({
+    success: true,
+    order: {
+      ...createdOrder,
+      photos: createdPhotos.map((p: any, idx: number) => ({
+        pieceIndex: idx + 1,
+        garmentId: p.order_item_id || undefined,
+        garmentNameAr: p.notes || 'قطعة ملابس',
+        garmentNameEn: 'Garment Piece',
+        photoUrl: p.photo_url,
+        tag: p.photo_type || 'توثيق العميل',
+        notes: p.notes || undefined
+      }))
+    }
+  });
 });
 
 // 4. Update Order Lifecycle Status

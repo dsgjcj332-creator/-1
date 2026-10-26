@@ -53,6 +53,7 @@ interface AppContextType {
   selectedPartner: LaundryPartner;
   setSelectedPartner: (partner: LaundryPartner) => void;
   partners: LaundryPartner[];
+  getGarmentPrice: (garmentId: string, serviceType: string) => number;
 
   // Price adjustment approval
   approvePriceAdjustment: (orderId: string, approved: boolean) => Promise<boolean>;
@@ -302,20 +303,223 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(language === 'ar' ? 'تم تعيين العنوان كافتراضي' : 'Default address updated');
   };
 
-  // City & Laundry Partners
+  // City & Laundry Partners — loaded from admin's approved merchants
   const [selectedCity, setSelectedCity] = useState<string>('zagazig');
-  const [partners, setPartners] = useState<LaundryPartner[]>(LAUNDRY_PARTNERS);
-  const [selectedPartner, setSelectedPartner] = useState<LaundryPartner>(LAUNDRY_PARTNERS[0]);
 
-  // Orders
+  // Helper: map an ops MerchantBusiness → LaundryPartner
+  const mapOpsToPartner = (m: any): LaundryPartner => {
+    let merchantSettings: any = {};
+    try {
+      const raw = localStorage.getItem(`ala_el_saree_merchant_settings_${m.id}`);
+      if (raw) merchantSettings = JSON.parse(raw);
+    } catch {}
+
+    return {
+      id: m.id,
+      nameAr: m.nameAr || m.name_ar || 'مغسلة',
+      nameEn: m.nameEn || m.name_en || 'Laundry',
+      city: m.city === 'الزقازيق' ? 'zagazig'
+          : m.city === 'المنصورة' ? 'mansoura'
+          : m.city === 'القاهرة' ? 'cairo'
+          : (m.city || 'zagazig').toLowerCase().replace(/\s/g, '_'),
+      neighborhoodAr: m.district || m.address || 'وسط المدينة',
+      neighborhoodEn: m.district || m.city || 'City Center',
+      rating: Number(m.rating) || 5.0,
+      ratingCount: Number(m.totalOrdersFulfilled) || 0,
+      estimatedHours: merchantSettings.estimatedHours ?? m.estimatedHours ?? 24,
+      minOrderAmount: merchantSettings.minOrderAmount ?? m.minOrderAmount ?? 20,
+      deliveryFee: merchantSettings.deliveryFee ?? m.deliveryFee ?? 25,
+      expressAvailable: merchantSettings.expressAvailable !== undefined ? merchantSettings.expressAvailable : (m.expressAvailable ?? true),
+      expressHours: merchantSettings.expressHours ?? m.expressHours ?? 6,
+      badgeAr: (Number(m.rating) || 0) >= 4.9 ? 'شريك بلاتيني معتمد' : 'شريك معتمد',
+      badgeEn: (Number(m.rating) || 0) >= 4.9 ? 'Platinum Partner' : 'Verified Partner'
+    };
+  };
+
+  const loadActivePartnersFromOps = (): LaundryPartner[] => {
+    try {
+      const raw = localStorage.getItem('ala_el_saree_ops_merchants');
+      if (raw) {
+        const parsed: any[] = JSON.parse(raw);
+        const active = parsed.filter(m => m.status === 'active');
+        if (active.length > 0) return active.map(mapOpsToPartner);
+      }
+    } catch {
+      // fallback
+    }
+    return [];
+  };
+
+  const [partners, setPartners] = useState<LaundryPartner[]>(() => {
+    const real = loadActivePartnersFromOps();
+    return real.length > 0 ? real : LAUNDRY_PARTNERS;
+  });
+
+  // Listen to live merchant settings updates
+  useEffect(() => {
+    const handleSettingsUpdated = () => {
+      const refreshed = loadActivePartnersFromOps();
+      if (refreshed.length > 0) {
+        setPartners(refreshed);
+        setSelectedPartner(prev => refreshed.find(p => p.id === prev?.id) || refreshed[0]);
+      }
+    };
+    window.addEventListener('ala_el_saree_merchant_settings_updated', handleSettingsUpdated);
+    return () => window.removeEventListener('ala_el_saree_merchant_settings_updated', handleSettingsUpdated);
+  }, []);
+
+  const [selectedPartner, setSelectedPartner] = useState<LaundryPartner>(() => {
+    const real = loadActivePartnersFromOps();
+    const list = real.length > 0 ? real : LAUNDRY_PARTNERS;
+    return list[0];
+  });
+
+  // React to admin approving new merchants
+  useEffect(() => {
+    const refreshPartners = () => {
+      const real = loadActivePartnersFromOps();
+      if (real.length > 0) {
+        setPartners(real);
+        setSelectedPartner(prev => real.find(p => p.id === prev?.id) || real[0]);
+      }
+    };
+    window.addEventListener('ala_el_saree_ops_merchants_updated', refreshPartners);
+    window.addEventListener('storage', (e: StorageEvent) => {
+      if (e.key === 'ala_el_saree_ops_merchants') refreshPartners();
+    });
+    return () => {
+      window.removeEventListener('ala_el_saree_ops_merchants_updated', refreshPartners);
+    };
+  }, []);
+
+  // Helper: get garment price from selected partner's custom catalog (fallback to base price)
+  const getGarmentPrice = (garmentId: string, serviceType: string): number => {
+    try {
+      const catalogKey = `ala_el_saree_merchant_catalog_${selectedPartner?.id}`;
+      const raw = localStorage.getItem(catalogKey);
+      if (raw) {
+        const catalog: any[] = JSON.parse(raw);
+        const item = catalog.find((c: any) => c.id === garmentId);
+        if (item) {
+          if (serviceType === 'wash_iron') return item.washIronPrice || item.basePrices?.wash_iron || 35;
+          if (serviceType === 'dry_clean') return item.dryCleanPrice || item.basePrices?.dry_clean || 45;
+          if (serviceType === 'iron_only') return item.ironOnlyPrice || item.basePrices?.iron_only || 20;
+          if (serviceType === 'wash_only') return item.washIronPrice || item.basePrices?.wash_only || 25;
+        }
+      }
+    } catch {
+      // fallback
+    }
+    const garment = GARMENTS.find(g => g.id === garmentId);
+    if (!garment) return 35;
+    return (garment.basePrices as any)[serviceType] || 35;
+  };
+
+  // Orders — clear legacy mock data from storage on first clean load
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('alasaree_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    try {
+      const saved = localStorage.getItem('alasaree_orders');
+      if (saved) {
+        const parsed: Order[] = JSON.parse(saved);
+        // Filter out legacy hardcoded mock order IDs
+        const real = parsed.filter(o =>
+          o.id !== 'order-active-1' && o.id !== 'order-past-1'
+        );
+        return real;
+      }
+    } catch {
+      // ignore
+    }
+    return [];
   });
 
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(
     orders.find(o => o.status !== 'delivered' && o.status !== 'cancelled') || orders[0] || null
   );
+
+  // Live sync orders with Ops & Merchant actions
+  useEffect(() => {
+    const handleSyncOps = () => {
+      try {
+        const opsRaw = localStorage.getItem('ala_el_saree_ops_orders');
+        if (!opsRaw) return;
+        const opsOrders: any[] = JSON.parse(opsRaw);
+
+        setOrders(prevOrders => {
+          let hasChanges = false;
+          const updated = prevOrders.map(custOrd => {
+            const matchedOps = opsOrders.find(
+              (o: any) => o.id === custOrd.id || o.orderNumber === custOrd.referenceNumber
+            );
+            if (!matchedOps) return custOrd;
+
+            // Map Ops lifecycle status to customer status
+            let mapped: OrderStatus = custOrd.status;
+            if (matchedOps.status === 'awaiting_laundry_confirmation') mapped = 'order_received';
+            else if (matchedOps.status === 'accepted' || matchedOps.status === 'awaiting_pickup') mapped = 'order_confirmed';
+            else if (matchedOps.status === 'collected') mapped = 'clothes_collected';
+            else if (matchedOps.status === 'received_at_laundry' || matchedOps.status === 'inspection_required') mapped = 'at_laundry';
+            else if (matchedOps.status === 'processing') mapped = 'cleaning_in_progress';
+            else if (matchedOps.status === 'ready_for_delivery') mapped = 'ready_for_delivery';
+            else if (matchedOps.status === 'delivery_assigned' || matchedOps.status === 'out_for_delivery') mapped = 'courier_to_deliver';
+            else if (matchedOps.status === 'completed' || matchedOps.status === 'delivered') mapped = 'delivered';
+            else if (matchedOps.status === 'rejected' || matchedOps.status === 'cancelled') mapped = 'cancelled';
+
+            if (mapped !== custOrd.status) {
+              hasChanges = true;
+              const lastNote = matchedOps.statusHistory?.slice(-1)[0]?.note || 'تحديث مرحلة الطلب بالمغسلة';
+              return {
+                ...custOrd,
+                status: mapped,
+                statusHistory: [
+                  ...custOrd.statusHistory,
+                  {
+                    status: mapped,
+                    timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+                    titleAr: lastNote,
+                    titleEn: 'Order stage updated',
+                    descriptionAr: lastNote,
+                    descriptionEn: 'Status updated by laundry partner'
+                  }
+                ]
+              };
+            }
+            return custOrd;
+          });
+
+          if (hasChanges) {
+            localStorage.setItem('alasaree_orders', JSON.stringify(updated));
+            return updated;
+          }
+          return prevOrders;
+        });
+      } catch (e) {
+        console.error('[AppContext] Live ops sync error:', e);
+      }
+    };
+
+    window.addEventListener('ala_el_saree_ops_orders_updated', handleSyncOps);
+    window.addEventListener('storage', (e: StorageEvent) => {
+      if (e.key === 'ala_el_saree_ops_orders' || e.key === 'alasaree_orders') handleSyncOps();
+    });
+    return () => {
+      window.removeEventListener('ala_el_saree_ops_orders_updated', handleSyncOps);
+    };
+  }, []);
+
+  // Keep activeTrackingOrder in sync with orders
+  useEffect(() => {
+    if (activeTrackingOrder) {
+      const match = orders.find(o => o.id === activeTrackingOrder.id);
+      if (match && match.status !== activeTrackingOrder.status) {
+        setActiveTrackingOrder(match);
+      }
+    } else if (orders.length > 0) {
+      setActiveTrackingOrder(
+        orders.find(o => o.status !== 'delivered' && o.status !== 'cancelled') || orders[0]
+      );
+    }
+  }, [orders]);
 
   // Sync with authoritative backend API
   const fetchBackendData = async () => {
@@ -354,7 +558,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           referenceNumber: ord.orderNumber || ord.order_number || ord.referenceNumber || ord.id,
           createdAt: ord.createdAt || ord.created_at || new Date().toISOString(),
           customerId: ord.customerId || ord.customer_id || 'cust-101',
-          partnerId: ord.merchantId || ord.merchant_id || 'm-zag-01',
+          partnerId: ord.merchantId || ord.merchant_id || '',
           items: Array.isArray(ord.items) ? ord.items.map((it: any) => ({
             garmentId: it.serviceId || it.service_id || it.id,
             quantity: it.receivedQuantity ?? it.received_quantity ?? it.quantity ?? 1,
@@ -367,7 +571,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             },
             unitPrice: Number(it.unitPrice || it.unit_price || 25)
           })) : [],
-          photos: [],
+          photos: (ord.photos && Array.isArray(ord.photos) && ord.photos.length > 0)
+            ? ord.photos
+            : (() => {
+                try {
+                  const localRaw = localStorage.getItem('alasaree_orders');
+                  const localList: any[] = localRaw ? JSON.parse(localRaw) : [];
+                  const match = localList.find((lo: any) => lo.id === ord.id || lo.referenceNumber === (ord.orderNumber || ord.order_number || ord.referenceNumber));
+                  if (match?.photos && match.photos.length > 0) return match.photos;
+
+                  const opsRaw = localStorage.getItem('ala_el_saree_ops_orders');
+                  const opsList: any[] = opsRaw ? JSON.parse(opsRaw) : [];
+                  const opsMatch = opsList.find((oo: any) => oo.id === ord.id || oo.orderNumber === (ord.orderNumber || ord.order_number || ord.referenceNumber));
+                  return opsMatch?.photos || [];
+                } catch {
+                  return [];
+                }
+              })(),
           pickup: {
             date: new Date().toISOString().slice(0, 10),
             timeSlot: '09:00 ص - 12:00 م',
@@ -430,6 +650,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fetchBackendData();
   }, []);
 
+  // Real-time synchronization when Merchant advances order steps or updates status
+  useEffect(() => {
+    const handleSyncOpsUpdates = () => {
+      try {
+        const rawCust = localStorage.getItem('alasaree_orders');
+        if (rawCust) {
+          const parsedCust: Order[] = JSON.parse(rawCust);
+          if (parsedCust && parsedCust.length > 0) {
+            setOrders(parsedCust);
+            setActiveTrackingOrder(prev => {
+              if (!prev) return parsedCust[0];
+              return parsedCust.find(o => o.id === prev.id || o.referenceNumber === prev.referenceNumber) || parsedCust[0];
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to sync customer orders on ops event:', err);
+      }
+    };
+
+    window.addEventListener('ala_el_saree_ops_orders_updated', handleSyncOpsUpdates);
+    window.addEventListener('storage', handleSyncOpsUpdates);
+    return () => {
+      window.removeEventListener('ala_el_saree_ops_orders_updated', handleSyncOpsUpdates);
+      window.removeEventListener('storage', handleSyncOpsUpdates);
+    };
+  }, []);
+
   // Cart
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
 
@@ -441,22 +689,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const garment = GARMENTS.find(g => g.id === garmentId);
     if (!garment) return;
 
-    const unitPrice = garment.basePrices[customization.serviceType] || 35;
+    // Use merchant-specific price if available plus stain treatment cost
+    const baseUnitPrice = getGarmentPrice(garmentId, customization.serviceType);
+    const unitPrice = baseUnitPrice + (customization.stainCost || 0);
 
     setCartItems(prev => {
-      // Find if exact same garment + customization exists
+      // Find if exact same garment + customization exists (stains & notes)
       const existingIdx = prev.findIndex(
         item =>
           item.garmentId === garmentId &&
           item.customization.serviceType === customization.serviceType &&
-          item.customization.fragrance === customization.fragrance &&
-          item.customization.starch === customization.starch &&
-          item.customization.packaging === customization.packaging
+          JSON.stringify((item.customization.stains || []).slice().sort()) ===
+            JSON.stringify((customization.stains || []).slice().sort()) &&
+          (item.customization.notes || '') === (customization.notes || '')
       );
 
       if (existingIdx >= 0) {
         const next = [...prev];
         next[existingIdx].quantity += quantity;
+        next[existingIdx].unitPrice = unitPrice; // update price in case merchant changed it
         return next;
       } else {
         return [...prev, { garmentId, quantity, customization, unitPrice }];
@@ -484,8 +735,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (idx === -1) {
         if (delta > 0) {
-          const garment = GARMENTS.find(g => g.id === garmentId);
-          const unitPrice = garment ? garment.basePrices[customization.serviceType] || 35 : 35;
+          const unitPrice = getGarmentPrice(garmentId, customization.serviceType);
           return [...prev, { garmentId, quantity: delta, customization, unitPrice }];
         }
         return prev;
@@ -661,6 +911,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           customerNotes: it.customization.notes
         };
       }),
+      photos: cartPhotos.map(p => ({
+        pieceIndex: p.pieceIndex,
+        garmentId: p.garmentId,
+        garmentNameAr: p.garmentNameAr,
+        garmentNameEn: p.garmentNameEn,
+        photoUrl: p.photoUrl,
+        tag: p.tag,
+        notes: p.notes
+      })),
       paymentMethod,
       specialInstructions: orderNotes
     }).then(() => {
@@ -707,6 +966,81 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setOrders(nextOrders);
     localStorage.setItem('alasaree_orders', JSON.stringify(nextOrders));
     setActiveTrackingOrder(newOrder);
+
+    // ── Push order to Operations (merchant dashboard + admin) ──────────
+    try {
+      const opsOrdersRaw = localStorage.getItem('ala_el_saree_ops_orders');
+      const opsOrders: any[] = opsOrdersRaw ? JSON.parse(opsOrdersRaw) : [];
+      const opsNewOrder = {
+        id: newOrder.id,
+        orderNumber: newOrder.referenceNumber,
+        createdAt: new Date().toISOString(),
+        customerId: newOrder.customerId,
+        customerName: user?.name || 'عميل عالسريع',
+        customerPhone: user?.phone || '',
+        merchantId: selectedPartner.id,
+        merchantName: selectedPartner.nameAr,
+        city: selectedAddress.city,
+        neighborhood: selectedAddress.neighborhood || '',
+        pickupAddress: `${selectedAddress.street || ''}, ${selectedAddress.neighborhood || ''}, ${selectedAddress.city || ''}`,
+        deliveryAddress: `${selectedAddress.street || ''}, ${selectedAddress.neighborhood || ''}, ${selectedAddress.city || ''}`,
+        status: 'awaiting_laundry_confirmation',
+        paymentStatus: 'pending',
+        paymentMethod: paymentMethod === 'cod' ? 'cash_on_delivery' : paymentMethod === 'instapay' ? 'wallet_instapay' : 'online_card',
+        items: cartItems.map(it => {
+          const garment = GARMENTS.find(g => g.id === it.garmentId);
+          return {
+            id: it.garmentId,
+            nameAr: garment?.nameAr || 'قطعة غسيل',
+            nameEn: garment?.nameEn || 'Garment',
+            category: garment?.categoryId || 'general',
+            serviceType: it.customization.serviceType,
+            quantity: it.quantity,
+            unitPrice: it.unitPrice,
+            subtotal: it.unitPrice * it.quantity,
+            fragrance: it.customization.fragrance,
+            starch: it.customization.starch,
+            packaging: it.customization.packaging,
+            customerNotes: it.customization.notes
+          };
+        }),
+        photos: cartPhotos.map(p => ({
+          pieceIndex: p.pieceIndex,
+          garmentId: p.garmentId,
+          garmentNameAr: p.garmentNameAr,
+          garmentNameEn: p.garmentNameEn,
+          photoUrl: p.photoUrl,
+          tag: p.tag,
+          notes: p.notes
+        })),
+        laundrySubtotal: cartSubtotal,
+        adjustmentsTotal: 0,
+        commissionRate: 0.08,
+        commissionAmount: Math.round(cartSubtotal * 0.08),
+        platformFee: 20,
+        platformFeePayer: 'customer',
+        deliveryFeeCustomer: deliveryFee,
+        driverPayoutPickup: 15,
+        driverPayoutDelivery: 15,
+        customerTotalPaid: finalTotal,
+        merchantPayableAmount: cartSubtotal - Math.round(cartSubtotal * 0.08),
+        isSettled: false,
+        statusHistory: [
+          {
+            status: 'awaiting_laundry_confirmation',
+            timestamp: new Date().toISOString(),
+            actor: 'customer_app',
+            note: `طلب جديد من ${user?.name || 'العميل'} عبر تطبيق عالسريع`
+          }
+        ],
+        specialInstructions: orderNotes
+      };
+      localStorage.setItem('ala_el_saree_ops_orders', JSON.stringify([opsNewOrder, ...opsOrders]));
+      window.dispatchEvent(new CustomEvent('ala_el_saree_new_order', { detail: opsNewOrder }));
+    } catch (err) {
+      console.error('[AppContext] Failed to push order to ops storage:', err);
+    }
+
     clearCart();
     setAppliedCoupon(null);
 
@@ -820,7 +1154,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const reorder = (prevOrder: Order) => {
     setCartItems([...prevOrder.items]);
-    const partner = LAUNDRY_PARTNERS.find(p => p.id === prevOrder.partnerId) || LAUNDRY_PARTNERS[0];
+    const partner = partners.find(p => p.id === prevOrder.partnerId) || partners[0] || LAUNDRY_PARTNERS[0];
     setSelectedPartner(partner);
     setSelectedAddress(prevOrder.address);
     navigateTo('checkout');
@@ -885,6 +1219,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         selectedPartner,
         setSelectedPartner,
         partners,
+        getGarmentPrice,
         approvePriceAdjustment,
 
         cartItems,

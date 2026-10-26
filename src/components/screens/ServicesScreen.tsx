@@ -95,7 +95,7 @@ export const ServicesScreen: React.FC = () => {
           filteredGarments.map(garment => (
             <div
               key={garment.id}
-              onClick={() => navigateTo('garment_select')}
+              onClick={() => navigateTo('partner_select')}
               className="p-3 bg-white rounded-2xl border border-[#E5EEF4] hover:border-[#08BDF4] transition flex items-center justify-between cursor-pointer group shadow-2xs"
             >
               <div className="flex items-center gap-3">

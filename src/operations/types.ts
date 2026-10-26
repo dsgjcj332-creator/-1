@@ -45,7 +45,9 @@ export interface MerchantApplication {
   website?: string;
   capacity?: string;
   notes?: string;
+  password?: string;
   locationLink?: string;
+  coordinates?: { lat: number; lng: number };
   privacyConsent: boolean;
   status: MerchantApplicationStatus;
   receivedAt: string;
@@ -63,6 +65,9 @@ export interface MerchantBusiness {
   taxNumber: string;
   ownerName: string;
   phone: string;
+  password?: string;
+  locationLink?: string;
+  coordinates?: { lat: number; lng: number };
   governorate: string;
   city: string;
   district: string;
@@ -172,6 +177,15 @@ export interface LaundryOrder {
   discrepancy?: OrderDiscrepancy;
   pickupJobId?: string;
   deliveryJobId?: string;
+  photos?: Array<{
+    pieceIndex: number;
+    garmentId: string;
+    garmentNameAr: string;
+    garmentNameEn: string;
+    photoUrl: string;
+    tag?: string;
+    notes?: string;
+  }>;
   statusHistory: Array<{
     status: OrderLifecycleStatus;
     timestamp: string;

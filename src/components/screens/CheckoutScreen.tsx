@@ -38,6 +38,7 @@ export const CheckoutScreen: React.FC = () => {
     orderNotes,
     setOrderNotes,
     calculatedSummary,
+    cartSubtotal,
     placeOrder,
     navigateTo,
     showToast
@@ -61,6 +62,14 @@ export const CheckoutScreen: React.FC = () => {
   };
 
   const handleConfirmOrder = () => {
+    if (selectedPartner && cartSubtotal < selectedPartner.minOrderAmount) {
+      showToast(
+        language === 'ar'
+          ? `الحد الأدنى لطلب ${selectedPartner.nameAr} هو ${selectedPartner.minOrderAmount} ج.م`
+          : `Minimum order for ${selectedPartner.nameEn} is ${selectedPartner.minOrderAmount} EGP`
+      );
+      return;
+    }
     setIsSubmitting(true);
     setTimeout(() => {
       placeOrder();
@@ -74,24 +83,24 @@ export const CheckoutScreen: React.FC = () => {
       {/* Step Indicator Bar */}
       <div className="bg-white p-3 rounded-2xl border border-[#E5EEF4] mb-4 shadow-2xs">
         <div className="flex items-center justify-between text-[11px] font-bold">
-          <div className="flex items-center gap-1.5 text-[#18A875]">
+          <div className="flex items-center gap-1 text-[#18A875]">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{language === 'ar' ? 'القطع (تم)' : 'Garments'}</span>
+            <span>{language === 'ar' ? 'المغسلة' : 'Laundry'}</span>
           </div>
           <span className="text-[#718596]">←</span>
-          <div className="flex items-center gap-1.5 text-[#18A875]">
+          <div className="flex items-center gap-1 text-[#18A875]">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{language === 'ar' ? 'التصوير (تم)' : 'Photos'}</span>
+            <span>{language === 'ar' ? 'القطع' : 'Garments'}</span>
           </div>
           <span className="text-[#718596]">←</span>
-          <div className="flex items-center gap-1.5 text-[#18A875]">
+          <div className="flex items-center gap-1 text-[#18A875]">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{language === 'ar' ? 'الموعد (تم)' : 'Schedule'}</span>
+            <span>{language === 'ar' ? 'الموعد' : 'Schedule'}</span>
           </div>
           <span className="text-[#718596]">←</span>
-          <div className="flex items-center gap-1.5 text-[#079FD0] bg-[#EAF8FF] px-2 py-0.5 rounded-lg border border-[#08BDF4]/30">
+          <div className="flex items-center gap-1 text-[#079FD0] bg-[#EAF8FF] px-2 py-0.5 rounded-lg border border-[#08BDF4]/30">
             <ShieldCheck className="w-3.5 h-3.5 animate-pulse" />
-            <span>{language === 'ar' ? 'التأكيد والدفع' : 'Confirm'}</span>
+            <span>{language === 'ar' ? 'التأكيد' : 'Confirm'}</span>
           </div>
         </div>
       </div>
@@ -131,11 +140,18 @@ export const CheckoutScreen: React.FC = () => {
                       {language === 'ar' ? garment?.nameAr : garment?.nameEn}
                     </h4>
                     <p className="text-[11px] text-[#718596] mt-0.5">
-                      {t[`service_${item.customization.serviceType}` as keyof typeof t]} · {t[`fragrance_${item.customization.fragrance}` as keyof typeof t]}
+                      {t[`service_${item.customization.serviceType}` as keyof typeof t]}
+                      {item.customization.stains && item.customization.stains.length > 0 && (
+                        <span className="text-amber-600 font-bold mr-1">
+                          · {item.customization.stains.length} معالجة بقع (+{item.customization.stainCost || 0} {t.currency})
+                        </span>
+                      )}
                     </p>
-                    <span className="text-[10px] text-[#079FD0] font-semibold">
-                      {t[`packaging_${item.customization.packaging}` as keyof typeof t]}
-                    </span>
+                    {item.customization.notes && (
+                      <span className="text-[10px] text-slate-500 font-medium block truncate max-w-[200px]">
+                        ملاحظة: {item.customization.notes}
+                      </span>
+                    )}
                   </div>
                 </div>
 

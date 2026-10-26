@@ -129,8 +129,8 @@ export const HomeScreen: React.FC = () => {
     }
   ];
 
-  const handleQuickServiceClick = (type: ServiceType) => {
-    navigateTo('garment_select');
+  const handleQuickServiceClick = (_type: ServiceType) => {
+    navigateTo('partner_select');
   };
 
   return (
@@ -212,7 +212,7 @@ export const HomeScreen: React.FC = () => {
                   {language === 'ar' ? banners[currentBannerIndex].descAr : banners[currentBannerIndex].descEn}
                 </p>
                 <button
-                  onClick={() => navigateTo('garment_select')}
+                  onClick={() => navigateTo('partner_select')}
                   className="px-3.5 py-1.5 bg-[#08BDF4] hover:bg-[#079FD0] text-white text-xs font-bold rounded-xl shadow-md transition active:scale-95 cursor-pointer whitespace-nowrap"
                 >
                   {language === 'ar' ? banners[currentBannerIndex].ctaAr : banners[currentBannerIndex].ctaEn}

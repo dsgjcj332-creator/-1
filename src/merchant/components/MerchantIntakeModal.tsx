@@ -392,6 +392,27 @@ export const MerchantIntakeModal: React.FC<MerchantIntakeModalProps> = ({
 
           {activeStepTab === 'treatment' && (
             <div className="space-y-4 text-xs">
+              {/* Customer Documented Photos */}
+              {order.photos && order.photos.length > 0 && (
+                <div className="bg-sky-50 border border-sky-100 rounded-xl p-3.5 space-y-2">
+                  <div className="font-bold text-sky-950 flex items-center gap-1.5">
+                    <Camera className="w-4 h-4 text-sky-600" />
+                    <span>صور توثيق العميل قبل الاستلام ({order.photos.length} قطع):</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {order.photos.map((p, idx) => (
+                      <div key={idx} className="bg-white rounded-lg border border-sky-200 overflow-hidden shadow-2xs">
+                        <img src={p.photoUrl} alt={p.garmentNameAr} className="w-full h-24 object-cover" />
+                        <div className="p-1.5 text-[10px]">
+                          <div className="font-bold text-slate-800 truncate">{p.garmentNameAr}</div>
+                          <div className="text-emerald-700 font-semibold">{p.tag || 'سليمة'}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Customer Special Instructions */}
               <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                 <div className="font-bold text-slate-800 mb-1">تعليمات العميل الخاصة المسجلة في التطبيق:</div>
