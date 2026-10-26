@@ -1,6 +1,8 @@
 import React from 'react';
 import { Shirt, Sparkles, Wind, Layers, Bed, SlidersHorizontal, Info } from 'lucide-react';
 import { LandingTranslation, Language } from '../data/translations';
+import serviceDryCleanImg from '../../assets/images/service_dry_clean_1792642989493.jpg';
+import serviceFoldedLinensImg from '../../assets/images/service_folded_linens_1792642990805.jpg';
 
 interface ServicesSectionProps {
   t: LandingTranslation;
@@ -35,7 +37,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ t, language })
       title: t.service4Title,
       desc: t.service4Desc,
       icon: <Sparkles className="w-5 h-5 text-[#08BDF4]" />,
-      image: '/src/assets/images/service_dry_clean_1792642989493.jpg',
+      image: serviceDryCleanImg,
       featured: true
     },
     {
@@ -43,7 +45,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ t, language })
       title: t.service5Title,
       desc: t.service5Desc,
       icon: <Bed className="w-5 h-5 text-[#08BDF4]" />,
-      image: '/src/assets/images/service_folded_linens_1792642990805.jpg',
+      image: serviceFoldedLinensImg,
       featured: true
     },
     {

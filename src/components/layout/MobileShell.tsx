@@ -64,6 +64,58 @@ export const MobileShell: React.FC<MobileShellProps> = ({ children, onBackToLand
     setDeferredPrompt(null);
   };
 
+  // Check if current screen is a secondary workflow that has a back button
+  const isSecondaryScreen =
+    currentScreen !== 'main' &&
+    currentScreen !== 'splash' &&
+    currentScreen !== 'onboarding' &&
+    currentScreen !== 'auth_welcome';
+
+  const getScreenTitle = (screen: ScreenType): string => {
+    switch (screen) {
+      case 'garment_select':
+        return language === 'ar' ? 'اختيار الملابس والخدمات' : 'Select Garments';
+      case 'garment_photos':
+        return language === 'ar' ? 'توثيق وتصوير القطع' : 'Garment Photo Verification';
+      case 'partner_select':
+        return language === 'ar' ? 'اختيار المغسلة الشريكة' : 'Select Laundry Partner';
+      case 'pickup_schedule':
+        return language === 'ar' ? 'تحديد موعد الاستلام' : 'Pickup Schedule';
+      case 'delivery_schedule':
+        return language === 'ar' ? 'تحديد موعد التوصيل' : 'Delivery Schedule';
+      case 'checkout':
+        return language === 'ar' ? 'مراجعة وتأكيد الطلب' : 'Checkout';
+      case 'order_confirmed':
+        return language === 'ar' ? 'تأكيد الطلب' : 'Order Confirmed';
+      case 'order_tracking':
+        return language === 'ar' ? 'متابعة وتتبع الطلب' : 'Track Order';
+      case 'address_form':
+        return language === 'ar' ? 'إضافة / تعديل عنوان' : 'Manage Address';
+      case 'support':
+        return language === 'ar' ? 'مركز المساعدة والدعم' : 'Help & Support';
+      case 'notifications':
+        return language === 'ar' ? 'التنبيهات والإشعارات' : 'Notifications';
+      case 'rate_order':
+        return language === 'ar' ? 'تقييم الخدمة' : 'Rate Order';
+      case 'auth_phone':
+        return language === 'ar' ? 'رقم الهاتف' : 'Phone Number';
+      case 'auth_otp':
+        return language === 'ar' ? 'تأكيد الرمز' : 'Verify OTP';
+      case 'auth_profile':
+        return language === 'ar' ? 'إعداد الحساب' : 'Setup Profile';
+      default:
+        return '';
+    }
+  };
+
+  const navItems: { tab: MainTab; label: string; icon: React.ReactNode; badge?: number }[] = [
+    { tab: 'home', label: t.navHome, icon: <Home className="w-5 h-5" /> },
+    { tab: 'services', label: t.navServices, icon: <Sparkles className="w-5 h-5" /> },
+    { tab: 'orders', label: t.navOrders, icon: <ShoppingBag className="w-5 h-5" /> },
+    { tab: 'addresses', label: t.navAddresses, icon: <MapPin className="w-5 h-5" /> },
+    { tab: 'account', label: t.navAccount, icon: <User className="w-5 h-5" /> }
+  ];
+
   return (
     <div className="min-h-screen bg-slate-100/90 text-[#183247] flex flex-col items-center justify-start p-0 md:py-6 selection:bg-[#08BDF4]/20 antialiased font-sans">
       
