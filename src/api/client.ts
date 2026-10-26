@@ -55,23 +55,102 @@ function normalizeObject(data: any): any {
 async function request<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
   // If deployed to a static host (like Vercel) without a dedicated backend, serve from local state
   if (isStaticHost) {
-    if (endpoint.startsWith('/merchants')) {
-      const saved = localStorage.getItem('ala_el_saree_merchants');
-      return (saved ? JSON.parse(saved) : { merchants: [] }) as T;
+    const method = (options.method || 'GET').toUpperCase();
+
+    // ── READ operations — return from localStorage or empty arrays ──
+    if (method === 'GET') {
+      if (endpoint.startsWith('/merchants')) {
+        const saved = localStorage.getItem('ala_el_saree_merchants');
+        return (saved ? JSON.parse(saved) : { merchants: [] }) as T;
+      }
+      if (endpoint.startsWith('/orders')) {
+        const saved = localStorage.getItem('ala_el_saree_orders');
+        return (saved ? JSON.parse(saved) : { orders: [] }) as T;
+      }
+      if (endpoint.startsWith('/customers/addresses')) {
+        const saved = localStorage.getItem('ala_el_saree_addresses');
+        return (saved ? JSON.parse(saved) : { addresses: [] }) as T;
+      }
+      if (endpoint.startsWith('/merchant-applications')) {
+        const saved = localStorage.getItem('ala_el_saree_applications');
+        return (saved ? JSON.parse(saved) : { applications: [] }) as T;
+      }
+      if (endpoint.startsWith('/delivery/tasks')) {
+        return { tasks: [] } as T;
+      }
+      if (endpoint.startsWith('/delivery/drivers')) {
+        return { drivers: [] } as T;
+      }
+      if (endpoint.startsWith('/finance/settlements')) {
+        return { settlements: [] } as T;
+      }
+      if (endpoint.startsWith('/finance/accounts')) {
+        return { accounts: [] } as T;
+      }
+      if (endpoint.startsWith('/finance/ledger')) {
+        return { entries: [], totals: {} } as T;
+      }
+      if (endpoint.startsWith('/system/audit-logs')) {
+        return { logs: [] } as T;
+      }
+      if (endpoint.startsWith('/system/support-tickets')) {
+        return { tickets: [] } as T;
+      }
+      if (endpoint.startsWith('/system/settings')) {
+        return { settings: {} } as T;
+      }
+      if (endpoint.startsWith('/services')) {
+        return { categories: [], services: [] } as T;
+      }
+      if (endpoint.startsWith('/auth/me')) {
+        return { user: null } as T;
+      }
+      if (endpoint.startsWith('/auth/personas')) {
+        return { personas: [] } as T;
+      }
     }
-    if (endpoint.startsWith('/orders')) {
-      const saved = localStorage.getItem('ala_el_saree_orders');
-      return (saved ? JSON.parse(saved) : { orders: [] }) as T;
+
+    // ── WRITE operations (POST, PUT, DELETE) — simulate success ──
+    if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
+      if (endpoint.startsWith('/merchant-applications')) {
+        const saved = localStorage.getItem('ala_el_saree_applications');
+        const list = saved ? JSON.parse(saved) : { applications: [] };
+
+        if (method === 'POST') {
+          const body = options.body ? JSON.parse(options.body as string) : {};
+          const newApp = {
+            id: `app-${Date.now()}`,
+            ...body,
+            status: 'pending',
+            createdAt: new Date().toISOString()
+          };
+          list.applications = [newApp, ...(list.applications || [])];
+          localStorage.setItem('ala_el_saree_applications', JSON.stringify(list));
+          return { success: true, referenceNumber: newApp.id, application: newApp } as T;
+        }
+
+        if (method === 'PUT' && endpoint.includes('/review')) {
+          const body = options.body ? JSON.parse(options.body as string) : {};
+          const appId = endpoint.split('/')[2];
+          list.applications = (list.applications || []).map((a: any) =>
+            a.id === appId ? { ...a, ...body } : a
+          );
+          localStorage.setItem('ala_el_saree_applications', JSON.stringify(list));
+          const updated = list.applications.find((a: any) => a.id === appId);
+          return { success: true, application: updated || {} } as T;
+        }
+      }
+      if (endpoint.startsWith('/auth')) {
+        return { success: true, token: 'demo-token', user: null, merchant: null, staff: null } as T;
+      }
+      // Generic write success for all other endpoints
+      return { success: true } as T;
     }
-    if (endpoint.startsWith('/customers/addresses')) {
-      const saved = localStorage.getItem('ala_el_saree_addresses');
-      return (saved ? JSON.parse(saved) : { addresses: [] }) as T;
-    }
-    if (endpoint.startsWith('/auth/me')) {
-      return { user: null } as T;
-    }
+
+    // Fallback for any uncovered endpoint
     return {} as T;
   }
+
 
   const token = getToken();
   const headers: Record<string, string> = {
