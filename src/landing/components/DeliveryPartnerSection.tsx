@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Truck, Clock, Navigation, CheckCircle2, X, Send, Loader2, AlertCircle } from 'lucide-react';
 import { LandingTranslation, Language } from '../data/translations';
 import { submitDeliveryInterest, DeliveryInterestData } from '../services/merchantApplicationService';
+import deliveryDoorstepBagImg from '../../assets/images/delivery_doorstep_bag_1792642990981.jpg';
 
 interface DeliveryPartnerSectionProps {
   t: LandingTranslation;
@@ -67,7 +68,7 @@ export const DeliveryPartnerSection: React.FC<DeliveryPartnerSectionProps> = ({ 
           <div className="lg:col-span-5 order-2 lg:order-1">
             <div className="relative rounded-3xl overflow-hidden border border-slate-200 shadow-xl aspect-[4/3] bg-slate-100 group">
               <img
-                src="/src/assets/images/delivery_doorstep_bag_1792642990981.jpg"
+                src={deliveryDoorstepBagImg}
                 alt="حقيبة استلام وتوصيل الملابس الموثقة من عالسريع"
                 referrerPolicy="no-referrer"
                 loading="lazy"

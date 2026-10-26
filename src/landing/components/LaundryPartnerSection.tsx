@@ -1,6 +1,7 @@
 import React from 'react';
 import { Store, TrendingUp, Users, ShieldCheck, Headphones, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { LandingTranslation, Language } from '../data/translations';
+import partnerShopImg from '../../assets/images/partner_laundry_shop_1792642991140.jpg';
 
 interface LaundryPartnerSectionProps {
   t: LandingTranslation;
@@ -76,7 +77,7 @@ export const LaundryPartnerSection: React.FC<LaundryPartnerSectionProps> = ({
           <div className="lg:col-span-6">
             <div className="relative rounded-3xl overflow-hidden border border-slate-200/90 shadow-xl aspect-[4/3] bg-slate-100 group">
               <img
-                src="/src/assets/images/partner_laundry_shop_1792642991140.jpg"
+                src={partnerShopImg}
                 alt="مغسلة شريكة معتمدة ضمن شبكة عالسريع"
                 referrerPolicy="no-referrer"
                 loading="lazy"

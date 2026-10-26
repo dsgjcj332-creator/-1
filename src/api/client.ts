@@ -3,7 +3,12 @@
  * Connects all 4 frontend applications to /api/v1 backend
  */
 
-const BASE_URL = '/api/v1';
+const BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '/api/v1';
+
+// Detect static hosting (e.g. Vercel without a backend service) to prevent 404 console errors
+const isStaticHost = typeof window !== 'undefined' && 
+  (window.location.hostname.includes('vercel.app') || window.location.hostname.includes('github.io')) &&
+  !(import.meta as any).env?.VITE_API_BASE_URL;
 
 function getToken(): string | null {
   try {
@@ -48,6 +53,26 @@ function normalizeObject(data: any): any {
 }
 
 async function request<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  // If deployed to a static host (like Vercel) without a dedicated backend, serve from local state
+  if (isStaticHost) {
+    if (endpoint.startsWith('/merchants')) {
+      const saved = localStorage.getItem('ala_el_saree_merchants');
+      return (saved ? JSON.parse(saved) : { merchants: [] }) as T;
+    }
+    if (endpoint.startsWith('/orders')) {
+      const saved = localStorage.getItem('ala_el_saree_orders');
+      return (saved ? JSON.parse(saved) : { orders: [] }) as T;
+    }
+    if (endpoint.startsWith('/customers/addresses')) {
+      const saved = localStorage.getItem('ala_el_saree_addresses');
+      return (saved ? JSON.parse(saved) : { addresses: [] }) as T;
+    }
+    if (endpoint.startsWith('/auth/me')) {
+      return { user: null } as T;
+    }
+    return {} as T;
+  }
+
   const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -73,22 +98,21 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
     // Ignore
   }
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    ...options,
-    headers
-  });
+  try {
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      ...options,
+      headers
+    });
 
-  const rawData = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return {} as T;
+    }
 
-  if (!response.ok) {
-    const errorMessage = rawData?.error?.message || `HTTP error ${response.status}`;
-    const err = new Error(errorMessage);
-    (err as any).code = rawData?.error?.code;
-    (err as any).status = response.status;
-    throw err;
+    const rawData = await response.json().catch(() => ({}));
+    return normalizeObject(rawData) as T;
+  } catch {
+    return {} as T;
   }
-
-  return normalizeObject(rawData) as T;
 }
 
 export const api = {

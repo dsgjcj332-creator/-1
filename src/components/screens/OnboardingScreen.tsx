@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { ArrowRight, ArrowLeft, Globe, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import imgPickupDelivery from '../../assets/images/onboarding_pickup_delivery_1792558853277.jpg';
+import imgGarmentCare from '../../assets/images/onboarding_garment_care_1792558853769.jpg';
+import imgTrackingOrder from '../../assets/images/onboarding_tracking_order_1792558853889.jpg';
 
 export const OnboardingScreen: React.FC = () => {
   const { language, setLanguage, t, navigateTo } = useApp();
@@ -10,21 +13,21 @@ export const OnboardingScreen: React.FC = () => {
     {
       title: t.onboardTitle1,
       desc: t.onboardDesc1,
-      image: '/src/assets/images/onboarding_pickup_delivery_1792558853277.jpg',
+      image: imgPickupDelivery,
       badgeAr: 'استلام وتوصيل مجاني',
       badgeEn: 'Doorstep Pickup & Delivery'
     },
     {
       title: t.onboardTitle2,
       desc: t.onboardDesc2,
-      image: '/src/assets/images/onboarding_garment_care_1792558853769.jpg',
+      image: imgGarmentCare,
       badgeAr: 'غسيل • مكواة بخار • دراي كلين',
       badgeEn: 'Wash • Steam Iron • Dry Clean'
     },
     {
       title: t.onboardTitle3,
       desc: t.onboardDesc3,
-      image: '/src/assets/images/onboarding_tracking_order_1792558853889.jpg',
+      image: imgTrackingOrder,
       badgeAr: 'تتبع خطوة بخطوة',
       badgeEn: 'Real-Time Order Tracking'
     }

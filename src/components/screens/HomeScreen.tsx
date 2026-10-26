@@ -11,6 +11,9 @@ import {
 import { useApp } from '../../context/AppContext';
 import { CITIES } from '../../data/mockData';
 import { ServiceType } from '../../types';
+import heroBannerImg from '../../assets/images/ala_elsaree_hero_banner_1792558853330.jpg';
+import imgGarmentCare from '../../assets/images/onboarding_garment_care_1792558853769.jpg';
+import imgTrackingOrder from '../../assets/images/onboarding_tracking_order_1792558853889.jpg';
 
 export const HomeScreen: React.FC = () => {
   const {
@@ -43,7 +46,7 @@ export const HomeScreen: React.FC = () => {
   const banners = [
     {
       id: 1,
-      image: '/src/assets/images/ala_elsaree_hero_banner_1792558853330.jpg',
+      image: heroBannerImg,
       tagAr: 'عرض خاص للأسبوع الأول',
       tagEn: 'Weekly Special Offer',
       titleAr: 'غسيلك جاهز.. من غير ما تتحرك',
@@ -55,7 +58,7 @@ export const HomeScreen: React.FC = () => {
     },
     {
       id: 2,
-      image: '/src/assets/images/onboarding_garment_care_1792558853769.jpg',
+      image: imgGarmentCare,
       tagAr: 'كوبون ترحيبي جديد',
       tagEn: 'Welcome Promo Code',
       titleAr: 'خصم 20% بكود SAREE20',
@@ -67,7 +70,7 @@ export const HomeScreen: React.FC = () => {
     },
     {
       id: 3,
-      image: '/src/assets/images/onboarding_tracking_order_1792558853889.jpg',
+      image: imgTrackingOrder,
       tagAr: 'الخدمة الفورية',
       tagEn: 'Express Laundry',
       titleAr: 'خدمة سريعة خلال 6 ساعات',
