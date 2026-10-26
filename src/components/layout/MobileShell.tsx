@@ -7,8 +7,6 @@ import {
   User,
   ArrowRight,
   ArrowLeft,
-  Smartphone,
-  Maximize2,
   CheckCircle2,
   Globe,
   Bell
@@ -36,207 +34,99 @@ export const MobileShell: React.FC<MobileShellProps> = ({ children, onBackToLand
     toastMessage
   } = useApp();
 
-  const [deviceFrame, setDeviceFrame] = useState<'iphone' | 'compact' | 'android' | 'fluid'>('iphone');
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
 
-  // Check if current screen is a secondary workflow that has a back button
-  const isSecondaryScreen =
-    currentScreen !== 'main' &&
-    currentScreen !== 'splash' &&
-    currentScreen !== 'onboarding' &&
-    currentScreen !== 'auth_welcome';
+  React.useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBanner(true);
+    };
 
-  const getScreenTitle = (screen: ScreenType): string => {
-    switch (screen) {
-      case 'garment_select':
-        return language === 'ar' ? 'اختيار الملابس والخدمات' : 'Select Garments';
-      case 'garment_photos':
-        return language === 'ar' ? 'توثيق وتصوير القطع' : 'Garment Photo Verification';
-      case 'partner_select':
-        return language === 'ar' ? 'اختيار المغسلة الشريكة' : 'Select Laundry Partner';
-      case 'pickup_schedule':
-        return language === 'ar' ? 'تحديد موعد الاستلام' : 'Pickup Schedule';
-      case 'delivery_schedule':
-        return language === 'ar' ? 'تحديد موعد التوصيل' : 'Delivery Schedule';
-      case 'checkout':
-        return language === 'ar' ? 'مراجعة وتأكيد الطلب' : 'Checkout';
-      case 'order_confirmed':
-        return language === 'ar' ? 'تأكيد الطلب' : 'Order Confirmed';
-      case 'order_tracking':
-        return language === 'ar' ? 'متابعة وتتبع الطلب' : 'Track Order';
-      case 'address_form':
-        return language === 'ar' ? 'إضافة / تعديل عنوان' : 'Manage Address';
-      case 'support':
-        return language === 'ar' ? 'مركز المساعدة والدعم' : 'Help & Support';
-      case 'notifications':
-        return language === 'ar' ? 'التنبيهات والإشعارات' : 'Notifications';
-      case 'rate_order':
-        return language === 'ar' ? 'تقييم الخدمة' : 'Rate Order';
-      case 'auth_phone':
-        return language === 'ar' ? 'رقم الهاتف' : 'Phone Number';
-      case 'auth_otp':
-        return language === 'ar' ? 'تأكيد الرمز' : 'Verify OTP';
-      case 'auth_profile':
-        return language === 'ar' ? 'إعداد الحساب' : 'Setup Profile';
-      default:
-        return '';
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      alert(language === 'ar' 
+        ? 'لتثبيت التطبيق على آيفون: اضغط زر المشاركة (Share) ثم اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen)'
+        : 'To install on iOS: tap the Share button and select "Add to Home Screen"');
+      return;
     }
-  };
-
-  const navItems: { tab: MainTab; label: string; icon: React.ReactNode; badge?: number }[] = [
-    { tab: 'home', label: t.navHome, icon: <Home className="w-5 h-5" /> },
-    { tab: 'services', label: t.navServices, icon: <Sparkles className="w-5 h-5" /> },
-    { tab: 'orders', label: t.navOrders, icon: <ShoppingBag className="w-5 h-5" /> },
-    { tab: 'addresses', label: t.navAddresses, icon: <MapPin className="w-5 h-5" /> },
-    { tab: 'account', label: t.navAccount, icon: <User className="w-5 h-5" /> }
-  ];
-
-  const now = new Date();
-  const timeFormatted = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-
-  // Compute container width classes based on selected device preset
-  const getDeviceContainerClass = () => {
-    switch (deviceFrame) {
-      case 'compact':
-        // iPhone SE / compact (375px)
-        return 'md:max-w-[375px] md:h-[812px] md:rounded-[44px] md:border-[10px] md:border-slate-800';
-      case 'android':
-        // Samsung Galaxy S24 / Android (390px)
-        return 'md:max-w-[390px] md:h-[844px] md:rounded-[36px] md:border-[8px] md:border-slate-700';
-      case 'fluid':
-        // Full responsive fluid
-        return 'w-full max-w-md md:h-[90vh] md:rounded-3xl md:border md:border-slate-700/50';
-      case 'iphone':
-      default:
-        // iPhone 16 Pro (402px)
-        return 'md:max-w-[402px] md:h-[874px] md:rounded-[48px] md:border-[10px] md:border-slate-800';
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShowInstallBanner(false);
     }
+    setDeferredPrompt(null);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-[#183247] flex flex-col items-center justify-start p-0 md:py-6 selection:bg-[#08BDF4]/20 antialiased">
+    <div className="min-h-screen bg-slate-100/90 text-[#183247] flex flex-col items-center justify-start p-0 md:py-6 selection:bg-[#08BDF4]/20 antialiased font-sans">
       
-      {/* Desktop Simulation Header Toolbar (Hidden on real phones) */}
-      <aside aria-label="Desktop Simulation Controls" className="hidden md:flex items-center justify-between w-full max-w-3xl px-4 py-2.5 mb-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 text-white text-xs shadow-lg">
-        <div className="flex items-center gap-2.5">
-          <span className="font-extrabold text-white tracking-wide flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#08BDF4] animate-pulse"></span>
-            عالسريع — Ala El Saree
-          </span>
-          <span className="text-white/40">|</span>
-          <span className="text-white/70 text-[11px]">مظهر شاشة الهاتف الحقيقية</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Return to Corporate Landing */}
-          {onBackToLanding && (
+      {/* PWA Install Notification Banner (When installable) */}
+      {showInstallBanner && (
+        <aside
+          aria-label="Install App"
+          className="w-full max-w-md px-4 py-2.5 mb-2 bg-[#08BDF4] text-white rounded-2xl shadow-md flex items-center justify-between text-xs font-bold transition-all animate-in fade-in slide-in-from-top-2"
+        >
+          <div className="flex items-center gap-2">
+            <span className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-white" />
+            </span>
+            <div>
+              <div className="text-white font-extrabold">{language === 'ar' ? 'تطبيق عالسريع' : 'Ala El Saree App'}</div>
+              <div className="text-white/80 text-[10px] font-normal">{language === 'ar' ? 'ثبّت التطبيق على شاشة هاتفك' : 'Install to your home screen'}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
             <button
-              onClick={onBackToLanding}
-              className="flex items-center gap-1.5 px-3 py-1 bg-[#08BDF4] hover:bg-[#079FD0] rounded-xl font-bold transition cursor-pointer text-white text-xs shadow-xs"
-              title="العودة للموقع التعريفي"
+              onClick={handleInstallClick}
+              className="px-3 py-1.5 bg-white text-[#079FD0] rounded-xl font-black text-xs hover:bg-slate-50 transition cursor-pointer shadow-xs active:scale-95"
             >
-              <Globe className="w-3.5 h-3.5" />
-              <span>{language === 'ar' ? 'الموقع التعريفي' : 'Corporate Landing'}</span>
+              {language === 'ar' ? 'تثبيت الآن' : 'Install'}
             </button>
-          )}
+            <button
+              onClick={() => setShowInstallBanner(false)}
+              className="p-1.5 text-white/70 hover:text-white rounded-lg text-xs"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+        </aside>
+      )}
 
-          {/* Language Toggle */}
+      {/* Top Bar for Desktop Navigation (Clean, minimal, responsive) */}
+      <div className="hidden md:flex items-center justify-between w-full max-w-md px-4 py-2 mb-2 text-xs text-slate-500 font-semibold">
+        {onBackToLanding ? (
           <button
-            onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
-            className="flex items-center gap-1.5 px-3 py-1 bg-white/15 hover:bg-white/25 rounded-xl font-bold transition cursor-pointer text-white text-xs"
-            title="تبديل اللغة / Switch Language"
+            onClick={onBackToLanding}
+            className="flex items-center gap-1.5 text-slate-600 hover:text-[#08BDF4] transition cursor-pointer"
           >
             <Globe className="w-3.5 h-3.5 text-[#08BDF4]" />
-            <span>{language === 'ar' ? 'English' : 'عربي'}</span>
+            <span>{language === 'ar' ? 'الرئيسية والموقع التعريفي' : 'Landing Page'}</span>
           </button>
+        ) : <div />}
 
-          {/* Device Frame Selector */}
-          <div className="flex items-center bg-black/50 p-0.5 rounded-xl border border-white/10">
-            <button
-              onClick={() => setDeviceFrame('iphone')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
-                deviceFrame === 'iphone' ? 'bg-[#08BDF4] text-white shadow-xs' : 'text-white/60 hover:text-white'
-              }`}
-            >
-              <Smartphone className="w-3 h-3" />
-              iPhone 16
-            </button>
-            <button
-              onClick={() => setDeviceFrame('android')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
-                deviceFrame === 'android' ? 'bg-[#08BDF4] text-white shadow-xs' : 'text-white/60 hover:text-white'
-              }`}
-            >
-              <Smartphone className="w-3 h-3" />
-              Android
-            </button>
-            <button
-              onClick={() => setDeviceFrame('compact')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
-                deviceFrame === 'compact' ? 'bg-[#08BDF4] text-white shadow-xs' : 'text-white/60 hover:text-white'
-              }`}
-            >
-              <Smartphone className="w-3 h-3" />
-              Compact (375)
-            </button>
-            <button
-              onClick={() => setDeviceFrame('fluid')}
-              className={`px-2 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
-                deviceFrame === 'fluid' ? 'bg-[#08BDF4] text-white shadow-xs' : 'text-white/60 hover:text-white'
-              }`}
-            >
-              <Maximize2 className="w-3 h-3" />
-            </button>
-          </div>
-        </div>
-      </aside>
+        <button
+          onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
+          className="flex items-center gap-1 text-slate-500 hover:text-slate-800 transition cursor-pointer px-2 py-1 rounded-lg hover:bg-white"
+        >
+          <Globe className="w-3.5 h-3.5 text-[#08BDF4]" />
+          <span>{language === 'ar' ? 'English' : 'عربي'}</span>
+        </button>
+      </div>
 
       {/* ============================================================== */}
-      {/* MOBILE SHELL CONTAINER (Fills 100% on phone, Framed on desktop) */}
+      {/* MAIN RESPONSIVE WEB APP CONTAINER                             */}
       {/* ============================================================== */}
       <div
-        className={`w-full h-[100dvh] transition-all duration-300 relative bg-white flex flex-col overflow-hidden shadow-2xl transform-gpu [transform:translateZ(0)] isolate ${getDeviceContainerClass()}`}
+        className="w-full max-w-md min-h-[100dvh] md:min-h-[820px] md:max-h-[92vh] transition-all duration-200 relative bg-white flex flex-col overflow-hidden shadow-sm md:shadow-2xl md:rounded-3xl md:border md:border-slate-200/80"
       >
-        {/* Status Bar (iPhone Dynamic Island / Android Camera) */}
-        <div className="w-full h-11 px-5 shrink-0 flex items-center justify-between text-xs font-bold select-none bg-white z-40 border-b border-transparent">
-          {/* Time */}
-          <span className="font-extrabold tracking-tight text-[#183247] w-12 text-center" dir="ltr">
-            {timeFormatted}
-          </span>
-          
-          {/* Dynamic Island or Camera Cutout */}
-          {deviceFrame === 'iphone' && (
-            <div className="hidden md:flex w-24 h-5 bg-black rounded-full items-center justify-center -mt-1 mx-auto pointer-events-none">
-              <span className="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-800 ml-auto mr-2"></span>
-            </div>
-          )}
-
-          {deviceFrame === 'compact' && (
-            <div className="hidden md:flex w-16 h-3 bg-black rounded-b-md mx-auto pointer-events-none"></div>
-          )}
-
-          {deviceFrame === 'android' && (
-            <div className="hidden md:flex w-3.5 h-3.5 bg-black rounded-full items-center justify-center -mt-1 mx-auto border border-slate-800 pointer-events-none"></div>
-          )}
-
-          {/* System Icons (Cell, Wifi, Battery) */}
-          <div className="flex items-center gap-1.5 text-[#183247] w-12 justify-end" dir="ltr">
-            {/* Cellular */}
-            <div className="flex items-end gap-0.5 h-2.5">
-              <span className="w-0.5 h-1 bg-[#183247] rounded-xs"></span>
-              <span className="w-0.5 h-1.5 bg-[#183247] rounded-xs"></span>
-              <span className="w-0.5 h-2 bg-[#183247] rounded-xs"></span>
-              <span className="w-0.5 h-2.5 bg-[#183247] rounded-xs"></span>
-            </div>
-            {/* WiFi */}
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" />
-            </svg>
-            {/* Battery */}
-            <div className="w-5 h-2.5 border border-[#183247] rounded-xs p-0.5 flex items-center">
-              <div className="w-3.5 h-full bg-[#183247] rounded-3xs"></div>
-            </div>
-          </div>
-        </div>
 
         {/* Secondary Screen Top App Bar with back navigation */}
         {isSecondaryScreen && (
@@ -327,9 +217,9 @@ export const MobileShell: React.FC<MobileShellProps> = ({ children, onBackToLand
         )}
       </div>
 
-      {/* Real Native Footer note on desktop */}
-      <footer className="hidden md:flex items-center gap-4 text-xs text-white/50 mt-4">
-        <span>عالسريع © 2026 — مصمم لجميع أحجام الهواتف الذكية (Google Play & App Store)</span>
+      {/* Footer note on desktop */}
+      <footer className="hidden md:flex items-center gap-4 text-xs text-slate-400 mt-4">
+        <span>عالسريع © 2026 — منصة العناية بالملابس والمغاسل الأولى في مصر</span>
       </footer>
     </div>
   );
