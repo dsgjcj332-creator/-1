@@ -531,23 +531,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ]);
 
       if (merchantsRes.status === 'fulfilled' && merchantsRes.value?.merchants && merchantsRes.value.merchants.length > 0) {
-        const mapped: LaundryPartner[] = merchantsRes.value.merchants.map((m: any) => ({
-          id: m.id,
-          nameAr: m.nameAr || m.name_ar,
-          nameEn: m.nameEn || m.name_en,
-          city: m.city === 'الزقازيق' ? 'zagazig' : m.city === 'المنصورة' ? 'mansoura' : m.city,
-          neighborhoodAr: m.district || m.address || 'وسط المدينة',
-          neighborhoodEn: m.district || m.city,
-          rating: Number(m.rating) || 4.8,
-          ratingCount: Number(m.totalOrdersFulfilled) || 45,
-          estimatedHours: 24,
-          minOrderAmount: 50,
-          deliveryFee: 25,
-          expressAvailable: true,
-          expressHours: 6,
-          badgeAr: (Number(m.rating) || 0) >= 4.9 ? 'شريك بلاتيني معتمد' : 'شريك متميز',
-          badgeEn: (Number(m.rating) || 0) >= 4.9 ? 'Platinum Certified' : 'Verified Partner'
-        }));
+        const mapped: LaundryPartner[] = merchantsRes.value.merchants.map(mapOpsToPartner);
         setPartners(mapped);
         setSelectedPartner(prev => mapped.find(p => p.id === prev?.id) || mapped[0]);
       }

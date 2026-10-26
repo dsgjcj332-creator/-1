@@ -60,6 +60,18 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
     // ── READ operations — return from localStorage or empty arrays ──
     if (method === 'GET') {
       if (endpoint.startsWith('/merchants')) {
+        // First: try returning real admin-approved merchants from ops storage
+        try {
+          const opsRaw = localStorage.getItem('ala_el_saree_ops_merchants');
+          if (opsRaw) {
+            const opsMerchants: any[] = JSON.parse(opsRaw);
+            const active = opsMerchants.filter((m: any) => m.status === 'active');
+            if (active.length > 0) {
+              return { merchants: active } as T;
+            }
+          }
+        } catch {}
+        // Fallback: legacy merchant storage
         const saved = localStorage.getItem('ala_el_saree_merchants');
         return (saved ? JSON.parse(saved) : { merchants: [] }) as T;
       }
